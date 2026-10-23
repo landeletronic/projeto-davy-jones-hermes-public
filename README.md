@@ -14,13 +14,13 @@ com GPU de 8 GB.
 > Este diretório é o **repositório de trabalho** (compartilhado por SMB). O host executa uma
 > cópia sincronizada em `/home/tlandskron/hermes-architect` — é essa cópia que o cron usa.
 
-## Estado atual (2026-10-21)
+## Estado atual (2026-10-23)
 
 | Item | Estado |
 |---|---|
 | Containers | 12, todos `healthy` |
-| Oráculo | `tests/verify_stack.sh` — **166 checks**, CI diário 04:10 |
-| Alertas | **9 regras** no grupo `lab` (Prometheus) + painel `hermes-alerts` + notificação no Windows |
+| Oráculo | `tests/verify_stack.sh` — **235 verificações**, CI diário 04:10 |
+| Alertas | **13 regras** no grupo `lab` (Prometheus) + painel `hermes-alerts` + notificação no Windows |
 | Backup | diário 03:30, retenção **14 diários + 6 mensais**, `webui.db` + `grafana.db` + snapshots, **restore provado** (inclusive em ambiente limpo) |
 | TLS | autoassinado até **2029-01-20**, alerta aos 30 dias, renovação em 1 comando |
 | Modelos | `qwen3:4b-64k` com KV `q4_0`: 100% na GPU e residente junto do `bge-m3` |
@@ -28,6 +28,76 @@ com GPU de 8 GB.
 | Pendente | P3 restante: citação verificável, retenção LGPD, auditoria leve, off-site real |
 
 Backlog completo e evidências: **`docs/reports/RELATORIO-LACUNAS.md`**.
+
+## Hardware e software instalados
+
+Medido no host em **2026-10-23** (`lscpu`, `dmidecode`, `lsblk`, `docker ps`, `ollama list`).
+
+### Servidor
+
+| Item | Especificação |
+|---|---|
+| Máquina | VM **QEMU/KVM** com a GPU em *passthrough* (VFIO) |
+| CPU | Intel Core i7-13700 — **16 vCPU** (x86_64, VT-x) |
+| Memória | **16 GB** (15 GiB visíveis) |
+| GPU | **AMD Radeon RX 6600** (Navi 23, 8 GB) — é ela que roda os modelos |
+| Disco | 1 TB virtio sobre LVM: `/` com 1004 GB, **57 GB usados (6%)** |
+| Rede | LAN `192.168.15.0/24` — 80/443 (nginx), 3001 (Grafana), 9119 (dashboard), 22 (SSH), 445 (SMB) |
+| SO | **Ubuntu 26.04.1 LTS** · kernel `7.0.0-38-generic` · fuso `America/Sao_Paulo` |
+
+### Software do host
+
+| Software | Versão | Para quê |
+|---|---|---|
+| Docker Engine | **29.9.0** | containers |
+| Docker Compose | **v5.6.0** | orquestração |
+| Python | **3.14.4** | scripts de `tools/` e do host |
+| Git | **2.53.0** | deploy e CI |
+| Bash | **5.3.9** | suíte e scripts |
+| Samba | **4.23.6** | share `documentos` (SMB na 445) |
+| cron | **3.0pl1** | backup, CI, ingestão do RAG, banco de questões |
+| ufw | **0.36.2** | firewall do host |
+| Tesseract OCR | **5.5.0** (idioma `por`) | gabarito que só existe em imagem |
+| Poppler | **26.01.0** | `pdftotext` / `pdftoppm` (inspeção de PDF) |
+
+### Serviços (containers — versões pinadas no `docker-compose.yml`)
+
+| Container | Versão | Papel |
+|---|---|---|
+| `open-webui` | **0.12.3** | chat do escritório + RAG, em HTTPS |
+| `hermes-agent` | **Hermes Agent 0.21.6** (2026.9.24) | gateway OpenAI-compatible + memória |
+| `hermes-dashboard` | **Hermes Agent 0.21.6** (imagem `hermes-tools`) | painel de operação `:9119` |
+| `ollama` | **0.40.2** | modelos de chat e embeddings |
+| `qdrant` | **1.19.2** | banco vetorial (mem0 + RAG) |
+| `docling` | **docling-serve-cpu 1.37.0** | conversão de PDF/Markdown |
+| `searxng` | **2026.10.17** | meta-busca (busca web desligada no chat) |
+| `nginx` | **1.31.7-alpine** | TLS e proxy da LAN |
+| `prometheus` | **3.15.0** | coleta e regras de alerta |
+| `node-exporter` | **1.12.1** | métricas do host |
+| `cadvisor` | **0.55.1** | métricas por container |
+| `grafana` | **13.2.4** | dashboards (`:3001` via nginx) |
+
+Imagens de terceiros ficam **pinadas por digest** (a suíte reprova `:latest`/`:main`).
+
+### Modelos de IA (`ollama list`)
+
+| Modelo | Tamanho | Uso |
+|---|---|---|
+| `qwen3:4b-64k` | 2,5 GB | chat principal — 100% na GPU com KV cache `q4_0` |
+| `qwen3:8b-chat-16k` | 5,2 GB | chat de estudo (conexão local do Open WebUI) |
+| `qwen3:8b-extract` | 5,2 GB | extração de fatos para o mem0 |
+| `bge-m3` | 1,2 GB | embeddings de 1024 dimensões (mem0 + RAG) |
+
+### Estação de trabalho (Windows, de onde rodam deploy e alertas)
+
+| Item | Especificação |
+|---|---|
+| Sistema | **Windows 11 Enterprise** 10.0.26300 (64 bits) |
+| CPU | AMD Ryzen 7 5700X — 8 núcleos / 16 threads |
+| Memória | 24 GB |
+| GPU | AMD Radeon RX 5500 XT |
+| Disco | `C:` 447 GB (159 GB livres) |
+| Ferramentas | PowerShell **5.1** · Git **2.55.0** · OpenSSH **9.5p2** · OpenCode **v2.1.4** |
 
 ## Uso rápido
 
