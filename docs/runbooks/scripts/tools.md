@@ -28,6 +28,8 @@
 | `prom_targets.py` | lista alvos do Prometheus por SSH | alvo `down` |
 | `get_digests.sh` | mostra os digests das imagens em uso | pinar/atualizar compose |
 | `get_mon_digests.sh` | idem, para a stack de monitoramento | pinar monitoramento |
+| `inventario_hardware.sh` | **coletor** do inventário de hardware: DMI/SMBIOS + `lspci`/`lsusb` → Markdown na saída padrão; somente leitura, mascara série/UUID/asset tag (card: [`inventario-proxmox.md`](inventario-proxmox.md)) | roda no host que se quer inventariar (o `.ps1` chama por você) |
+| `inventario-proxmox.ps1` | **Windows**: envia o coletor ao Proxmox (`root@192.168.15.221`), executa e grava `docs/architecture/INVENTARIO-HARDWARE-PROXMOX.md`; `-DryRun` mostra sem gravar (card: [`inventario-proxmox.md`](inventario-proxmox.md)) | precisa do fabricante/modelo de placa-mãe, CPU, GPU, USB e portas do **ferro** |
 
 ## Os quatro destrutivos
 

@@ -1382,6 +1382,68 @@ if [ -x /usr/local/bin/hermes-backup ]; then
 fi
 
 # ---------------------------------------------------------------------------
+section "INVENTÁRIO DE HARDWARE — coletor (host) + disparador (Windows)"
+# O inventário do servidor físico é o único documento que depende do DMI do ferro.
+# O que se protege aqui: (a) o coletor é somente LEITURA e não deixa arquivo no
+# host; (b) a máscara de série/UUID/asset tag não regride — o arquivo vai para o
+# espelho público; (c) o .ps1 continua ASCII puro (acento quebra o parser do
+# PowerShell 5.1) e as duas peças estão documentadas em tools.md.
+INV_SH="$DOCDIR/tools/inventario_hardware.sh"
+INV_PS1="$DOCDIR/tools/inventario-proxmox.ps1"
+if [ -f "$INV_SH" ]; then ok "coletor do inventário presente no host"; else bad "coletor ausente: tools/inventario_hardware.sh"; fi
+if [ -f "$INV_PS1" ]; then ok "disparador do inventário presente no host"; else bad "disparador ausente: tools/inventario-proxmox.ps1"; fi
+if [ -f "$INV_SH" ]; then
+  if bash -n "$INV_SH" 2>/dev/null; then ok "coletor do inventário com sintaxe válida"; else bad "coletor do inventário com erro de sintaxe (bash -n)"; fi
+  # A promessa do card é "não grava nada no host": sem mktemp, sem redirect/tee.
+  if grep -qE 'mktemp|>[[:space:]]*(/tmp/|~/)|[|][[:space:]]*tee ' "$INV_SH"; then
+    bad "coletor do inventário escreve arquivo no host (mktemp/redirect/tee)"
+  else
+    ok "coletor do inventário é somente leitura (não cria arquivo no host)"
+  fi
+fi
+if [ -f "$INV_PS1" ]; then
+  if LC_ALL=C grep -q '[^ -~	]' "$INV_PS1"; then
+    bad "inventario-proxmox.ps1 com caractere não-ASCII (parser do PS 5.1 quebra)"
+  else
+    ok "inventario-proxmox.ps1 é ASCII puro (seguro no PS 5.1)"
+  fi
+  if grep -qE 'Serial Number\|UUID\|Asset Tag' "$INV_PS1"; then
+    ok "disparador confere a máscara de identificador único antes de gravar"
+  else
+    bad "disparador sem a checagem de identificador único (série/UUID/asset tag)"
+  fi
+fi
+inv_miss=""
+for f in inventario_hardware.sh inventario-proxmox.ps1; do
+  grep -qF "$f" "$DOCDIR/docs/runbooks/scripts/tools.md" 2>/dev/null || inv_miss="$inv_miss $f"
+done
+[ -f "$DOCDIR/docs/runbooks/scripts/inventario-proxmox.md" ] || inv_miss="$inv_miss card"
+[ -f "$DOCDIR/docs/architecture/INVENTARIO-HARDWARE-PROXMOX.md" ] || inv_miss="$inv_miss documento"
+if [ -z "$inv_miss" ]; then ok "inventário documentado (tools.md + card + documento)"; else bad "documentação do inventário faltando:$inv_miss"; fi
+# Execução de verdade: roda o coletor e exige sucesso, stderr vazio, o título e a
+# seção de USB — e nenhum identificador único sem a máscara.
+if [ -f "$INV_SH" ]; then
+  inv_out=$(mktemp); inv_err=$(mktemp)
+  sudo -n bash "$INV_SH" >"$inv_out" 2>"$inv_err"
+  inv_rc=$?
+  inv_leak=$(grep -E '^[[:space:]]*(Serial Number|UUID|Asset Tag):' "$inv_out" | grep -vF '(omitido)' | head -3)
+  if [ "$inv_rc" -ne 0 ]; then
+    bad "coletor do inventário falhou (exit $inv_rc): $(head -2 "$inv_err" | tr '\n' ' ')"
+  elif [ -s "$inv_err" ]; then
+    bad "coletor do inventário escreveu no stderr: $(head -2 "$inv_err" | tr '\n' ' ')"
+  elif ! head -1 "$inv_out" | grep -q '^# Inventario de hardware'; then
+    bad "coletor do inventário: título inesperado na primeira linha"
+  elif ! grep -q '^## 10. USB' "$inv_out"; then
+    bad "coletor do inventário: seção de USB ausente"
+  elif [ -n "$inv_leak" ]; then
+    bad "coletor do inventário vazou identificador único: $(echo "$inv_leak" | tr '\n' ' ' | cut -c1-120)"
+  else
+    ok "coletor do inventário roda de verdade ($(grep -c . "$inv_out") linhas, sem identificador único)"
+  fi
+  rm -f "$inv_out" "$inv_err"
+fi
+
+# ---------------------------------------------------------------------------
 section "RESUMO"
 printf '  PASS=%s  FAIL=%s  WARN=%s\n' "$PASS" "$FAIL" "$WARN"
 if [ "$FAIL" -eq 0 ]; then

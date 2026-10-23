@@ -54,6 +54,7 @@ conserta. **Todo documento desta árvore está listado abaixo** — a suíte fal
 | [`runbooks/scripts/questoes.md`](runbooks/scripts/questoes.md) | a cada 30 min (provas/gabaritos → banco de questões) |
 | [`runbooks/scripts/tools.md`](runbooks/scripts/tools.md) | índice dos scripts de `tools/` (sob demanda) |
 | [`runbooks/scripts/make-public-repo.md`](runbooks/scripts/make-public-repo.md) | sob demanda (gera/publica o espelho público sanitizado) |
+| [`runbooks/scripts/inventario-proxmox.md`](runbooks/scripts/inventario-proxmox.md) | sob demanda (inventário de hardware do servidor físico, disparado do Windows) |
 
 ## Construção: como cada fase foi feita
 
@@ -69,6 +70,7 @@ conserta. **Todo documento desta árvore está listado abaixo** — a suíte fal
 | Documento | Conteúdo |
 |---|---|
 | [`architecture/DIRETORIOS-HOST-MEDUSA-2026-10-20.md`](architecture/DIRETORIOS-HOST-MEDUSA-2026-10-20.md) | retrato do host e mapeamento de diretórios (base da reestruturação) |
+| [`architecture/INVENTARIO-HARDWARE-PROXMOX.md`](architecture/INVENTARIO-HARDWARE-PROXMOX.md) | inventário de hardware do **servidor físico** (placa-mãe, CPU, GPU, USB, portas) — gerado por `tools/inventario-proxmox.ps1` |
 | [`plans/PLANO-IMPLEMENTACAO-MEM0.md`](plans/PLANO-IMPLEMENTACAO-MEM0.md) | plano original do mem0/RAG |
 | [`plans/DAVY-JONES-GPT-CONTEXTO-CONTINUIDADE.md`](plans/DAVY-JONES-GPT-CONTEXTO-CONTINUIDADE.md) | trilha paralela do ChatGPT (intenção, não inventário) |
 | [`plans/tarefas_mentais_davy-jones-hermas.md`](plans/tarefas_mentais_davy-jones-hermas.md) | rascunho do usuário para o **eixo de estudos** (em andamento) |

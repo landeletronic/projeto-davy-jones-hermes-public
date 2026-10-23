@@ -45,6 +45,11 @@ Medido no host em **2026-10-23** (`lscpu`, `dmidecode`, `lsblk`, `docker ps`, `o
 | Rede | LAN `192.168.15.0/24` — 80/443 (nginx), 3001 (Grafana), 9119 (dashboard), 22 (SSH), 445 (SMB) |
 | SO | **Ubuntu 26.04.1 LTS** · kernel `7.0.0-38-generic` · fuso `America/Sao_Paulo` |
 
+> A tabela acima é a **VM** que roda o lab. O **servidor físico** que a hospeda (Proxmox) tem
+> inventário próprio — placa-mãe, CPU, GPU, rede, USB 1.1/2.0/3.x e portas do painel:
+> [`docs/architecture/INVENTARIO-HARDWARE-PROXMOX.md`](docs/architecture/INVENTARIO-HARDWARE-PROXMOX.md)
+> (gerado por `tools/inventario-proxmox.ps1`, a partir do Windows).
+
 ### Software do host
 
 | Software | Versão | Para quê |
