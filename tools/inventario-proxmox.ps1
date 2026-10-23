@@ -8,8 +8,10 @@
     mangla aspas), executa (root ou `sudo -n`) e grava o Markdown em
     docs/architecture/INVENTARIO-HARDWARE-PROXMOX.md.
 
-    Somente leitura: nao instala nada no host e nao deixa arquivo la (o coletor roda
-    por stdin). A saida volta em base64 para o console nao estragar travessoes/acentos.
+    Somente leitura: nao instala nada e nao altera nada no host. O coletor viaja num
+    temporario /tmp/.inventario<pid>.sh (mais a saida em .md), removido por um trap ao
+    final - inclusive quando o coletor falha. A saida volta em base64 para o console
+    nao estragar travessoes/acentos.
 
     Sem chave cadastrada o ssh pede a senha (a primeira tentativa e sem BatchMode).
 
@@ -72,23 +74,19 @@ function Invoke-Remote {
 # 1. coletor -> base64 (texto puro, sem aspas que o ssh mangla)
 $b64Coletor = [Convert]::ToBase64String([System.IO.File]::ReadAllBytes($coletor))
 
-# 2. runner remoto. Sem arquivo em /tmp: o script vai por stdin (here-string).
-#    A saida volta em base64 -w0 para nao depender da codificacao do console.
+# 2. runner remoto. Regras: NENHUMA aspa dupla aqui dentro (o PowerShell 5.1 mangla
+#    aspas ao passar um argumento grande para o ssh) e UMA LINHA SO (quebra de linha
+#    em argumento de comando e fragil no CreateProcess do Windows). O payload vai uma
+#    vez (base64 do coletor, ~21 KB): duas camadas davam ~28 KB e estouravam o limite
+#    de 32 KB do CreateProcess no Windows.
+#    Sem PIPESTATUS: assim nao depende de o shell do root ser bash.
 $runner = @'
-set -u
-src=$(echo __B64__ | base64 -d) || { echo "falha ao decodificar o coletor" >&2; exit 3; }
-bash -n <<< "$src" || { echo "SINTAXE_FALHOU no coletor" >&2; exit 2; }
-if [ "$(id -u)" -eq 0 ]; then
-  bash <<< "$src"
-else
-  sudo -n bash <<< "$src"
-fi | base64 -w0
-exit "${PIPESTATUS[0]}"
+set -u; f=/tmp/.inventario$$.sh; o=/tmp/.inventario$$.md; trap 'rm -f $f $o' EXIT; echo __B64__ | base64 -d > $f || { echo ERRO_AO_DECODIFICAR_O_COLETOR >&2; exit 3; }; bash -n $f || { echo SINTAXE_FALHOU_no_coletor >&2; exit 2; }; if [ $(id -u) -eq 0 ]; then bash $f > $o; rc=$?; else sudo -n bash $f > $o; rc=$?; fi; base64 -w0 < $o; exit $rc
 '@
+$runner = $runner.Trim()
 $runner = $runner.Replace('__B64__', $b64Coletor)
 
-$b64Runner = [Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes($runner))
-$comando = "echo $b64Runner | base64 -d | bash"
+$comando = $runner
 
 # 3. executa
 Write-Host "[1/3] conectando em $Target ..."

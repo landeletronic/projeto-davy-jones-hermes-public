@@ -1412,6 +1412,23 @@ if [ -f "$INV_PS1" ]; then
   else
     bad "disparador sem a checagem de identificador único (série/UUID/asset tag)"
   fi
+  # Em 2026-10-23 duas camadas de base64 deram ~28 KB de linha de comando e o ssh
+  # nem iniciou ("O nome do arquivo ou a extensão é muito grande": CreateProcess ~32 KB).
+  # O payload vai UMA vez; a linha real é payload + runner (~350 B) + opções do ssh,
+  # então 29 KB deixa ~3 KB de folga para o coletor crescer.
+  inv_payload=$(base64 -w0 "$INV_SH" | wc -c | tr -d ' ')
+  if [ "${inv_payload:-0}" -gt 29000 ]; then
+    bad "payload do inventário grande demais ($inv_payload bytes; limite ~32 KB do CreateProcess)"
+  else
+    ok "payload do inventário cabe na linha de comando ($inv_payload bytes)"
+  fi
+  # O PS 5.1 mangla aspa dupla em argumento grande para o ssh → o runner não pode ter nenhuma.
+  inv_aspa=$(grep -F 'set -u; f=/tmp/.inventario' "$INV_PS1" | grep -c '"' || true)
+  if [ "${inv_aspa:-0}" -ne 0 ]; then
+    bad "runner do inventario-proxmox.ps1 com aspa dupla (o ssh do PS 5.1 mangla)"
+  else
+    ok "runner do disparador em uma linha e sem aspa dupla (seguro no ssh do PS 5.1)"
+  fi
 fi
 inv_miss=""
 for f in inventario_hardware.sh inventario-proxmox.ps1; do
@@ -1427,6 +1444,20 @@ if [ -f "$INV_SH" ]; then
   sudo -n bash "$INV_SH" >"$inv_out" 2>"$inv_err"
   inv_rc=$?
   inv_leak=$(grep -E '^[[:space:]]*(Serial Number|UUID|Asset Tag):' "$inv_out" | grep -vF '(omitido)' | head -3)
+  # Bug real (2026-10-23, no ferro): `\`` dentro de aspas simples no heredoc saia
+  # como barra invertida literal no documento ("\`sensors\`"). E o `|| echo
+  # desconhecido` colava "none" + "desconhecido" no cabecalho, porque o
+  # systemd-detect-virt imprime "none" e SAI 1 quando nao ha virtualizacao.
+  inv_bs=$(grep -c '\\`' "$inv_out" 2>/dev/null || true)
+  # Bug real (2026-10-23, no VM): o /sys/.../version vem com espaço à esquerda
+  # (" 1.10"), o `case` caía no default e o documento saía "USB ( 1.10), 2 porta(s)".
+  inv_usbgen=$(grep -E '^Portas por root hub:' "$inv_out" | grep -c 'USB (' || true)
+  # Bug real: quando o DMI não publica o tipo 8, a tabela da seção 11 saía com uma
+  # linha em branco entre o separador e a única linha (markdown quebrado).
+  inv_tab8=$(awk '/^\| Designador externo \|/{s=NR} s && NR==s+2 {print; exit}' "$inv_out")
+  # Bug real (2026-10-23, no ferro): o dmidecode alinha o valor com espacos a
+  # direita e o resumo saia "| Memoria | Kingston | 2x 16 GB KF3200C16D4/16GX     (2400 MT/s) ...".
+  inv_espacos=$(grep -E '^\| ' "$inv_out" | grep -c '   ' || true)
   if [ "$inv_rc" -ne 0 ]; then
     bad "coletor do inventário falhou (exit $inv_rc): $(head -2 "$inv_err" | tr '\n' ' ')"
   elif [ -s "$inv_err" ]; then
@@ -1437,6 +1468,16 @@ if [ -f "$INV_SH" ]; then
     bad "coletor do inventário: seção de USB ausente"
   elif [ -n "$inv_leak" ]; then
     bad "coletor do inventário vazou identificador único: $(echo "$inv_leak" | tr '\n' ' ' | cut -c1-120)"
+  elif [ "${inv_bs:-0}" -ne 0 ]; then
+    bad "coletor do inventário com barra invertida literal antes de crase ($inv_bs linha(s))"
+  elif ! grep -qE 'systemd-detect-virt = [a-z0-9-]+`\)' "$inv_out"; then
+    bad "coletor do inventário: cabeçalho do systemd-detect-virt quebrado em duas linhas"
+  elif [ "${inv_usbgen:-0}" -ne 0 ]; then
+    bad "coletor do inventário: geração de root hub não normalizada (sai 'USB ( 1.10)')"
+  elif [ -n "$inv_tab8" ] && ! printf '%s' "$inv_tab8" | grep -q '^|'; then
+    bad "coletor do inventário: tabela da seção 11 com linha em branco depois do separador"
+  elif [ "${inv_espacos:-0}" -ne 0 ]; then
+    bad "coletor do inventário: linha de tabela com espaço repetido (valor DMI não aparado)"
   else
     ok "coletor do inventário roda de verdade ($(grep -c . "$inv_out") linhas, sem identificador único)"
   fi

@@ -8,7 +8,9 @@
 
 1. Lê `tools/inventario_hardware.sh`, manda por **base64** ao host (o `ssh` do PowerShell 5.1
    mangla aspas) e executa com `bash` — ou `sudo -n bash` quando o login não é root.
-2. O coletor joga o script por *stdin* (`bash <<< "$src"`): **não grava arquivo no host**.
+2. O coletor em si é **somente leitura**: não instala nada, não altera nada e não escreve arquivo.
+   O *runner* usa dois temporários em `/tmp/.inventario<pid>.sh` e `.md` e os remove por um
+   `trap ... EXIT` — inclusive quando o coletor falha (conferido: `ls /tmp/.inventario*` fica vazio).
 3. A saída volta em **base64** e é decodificada no Windows — assim travessão e acento não
    dependem da página de código do console.
 4. Grava o Markdown em UTF-8 **sem BOM** e imprime o bloco *Resumo* na tela.
@@ -63,6 +65,8 @@ identificador não mascarado aparecer na saída.
 | `SINTAXE_FALHOU no coletor` | o `.sh` foi editado e quebrou — `bash -n tools/inventario_hardware.sh` no host |
 | `placa-mae` e `fonte` vazios e `systemd-detect-virt = kvm` | você rodou numa **VM**; o inventário do ferro precisa do `.221` |
 | `sensors`/`lsusb` ausentes | não são obrigatórios: o documento escreve "(nenhum dado)" e segue |
+| `O nome do arquivo ou a extensão é muito grande` no `ssh` | a linha de comando passou de ~32 KB (`CreateProcess` do Windows): o payload vai **uma** vez em base64 — não embrulhe o runner em outra camada |
+| root hub saindo `USB ( 1.10)` ou tabela da seção 11 com linha em branco | bug corrigido em 2026-10-23 (o `version` do `/sys` vem com espaço à esquerda); a suíte tem check para os dois |
 | Acentos estranhos no console | o arquivo está certo (base64 → UTF-8); é só a página de código do terminal |
 
 ## Reinstalar

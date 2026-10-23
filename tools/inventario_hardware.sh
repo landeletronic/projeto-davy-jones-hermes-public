@@ -23,7 +23,9 @@ if [ "$(id -u)" -eq 0 ]; then DMI="dmidecode"; else DMI="sudo -n dmidecode"; fi
 dmi() { $DMI -t "$1" 2>/dev/null; }
 
 # valor de um campo DMI: ("Product Name: X" -> "X")
-campo() { printf '%s\n' "$1" | sed -n "s/^[[:space:]]*$2:[[:space:]]*//p" | head -1; }
+# O dmidecode preenche o valor com espacos a direita (o Part Number sai
+# "KF3200C16D4/16GX        "): sem o trim, o resumo vira tabela torta.
+campo() { printf '%s\n' "$1" | sed -n "s/^[[:space:]]*$2:[[:space:]]*//p" | head -1 | sed 's/[[:space:]]*$//'; }
 
 # tira cabecalho do dmidecode
 corpo() { printf '%s\n' "$1" | grep -vE '^(#|Getting SMBIOS|SMBIOS|$)' | sed 's/[[:space:]]*$//'; }
@@ -52,11 +54,15 @@ lista_pci() {
       return s
     }
     function ultimo(s,   i) { i = match(s, /\[[0-9a-f]{4}\]$/); return (i ? substr(s, RSTART+1, 4) : "") }
-    # fabricante da placa parceira (SVendor/SDevice); o QEMU nao informa modelo
+    # fabricante da placa parceira (SVendor/SDevice); o QEMU nao informa modelo.
+    # Se o SDevice repete o nome do proprio controlador (audio da GPU), descarta:
+    # senao o resumo sai "... (AMD ... Navi 21/23 HDMI/DP Audio Controller)".
+    # E se o SVendor e o mesmo do Vendor, tambem e ruido ("(AMD ... [AMD/ATI])").
     function subsis(   s) {
       s = semid(sdev)
       if (s == "(sem nome no pci.ids)") s = ""
-      if (sven == "") return s
+      if (s != "" && index(dev, s) > 0) s = ""
+      if (sven == "" || semid(sven) == semid(ven)) return s
       return (s == "" ? semid(sven) : semid(sven) " " s)
     }
     function emite() {
@@ -80,7 +86,9 @@ driver_de() {  # /sys/bus/pci/devices/0000:<slot>/driver -> nome do modulo
 
 agora=$(date --iso-8601=seconds 2>/dev/null || date)
 host=$(hostname 2>/dev/null || echo '?')
-virt=$(systemd-detect-virt 2>/dev/null || echo 'desconhecido')
+# `systemd-detect-virt` imprime "none" e SAI 1 quando nao ha virtualizacao: o `||`
+# antigo colava "none" e "desconhecido" no cabecalho (visto no ferro em 2026-10-23).
+virt=$(systemd-detect-virt 2>/dev/null); [ -n "$virt" ] || virt='desconhecido'
 
 SIS=$(dmi 1); PLACA=$(dmi 2); CHASSI=$(dmi 3); CPU=$(dmi 4)
 PORTS=$(dmi 8); COOLER=$(dmi 27); PSU=$(dmi 39); BIOS=$(dmi 0); MEM=$(dmi 17)
@@ -101,6 +109,13 @@ chassi_type=$(campo "$CHASSI" 'Type')
 chassi_ver=$(campo "$CHASSI" 'Version')
 mem_mods=$(printf '%s\n' "$MEM" | grep -cE '^[[:space:]]*Size: [0-9]+ (MB|GB)')
 mem_total=$(free -h 2>/dev/null | awk '/^Mem:/{print $2}')
+# primeiro modulo: normalmente os slots sao identicos (B660M-HDV: 2x Kingston 16 GB)
+# (o trim e obrigatorio: o DMI alinha os valores com espacos a direita)
+trim() { sed -E 's/^[[:space:]]+//; s/[[:space:]]+$//'; }
+mem_fab=$(printf '%s\n' "$MEM" | awk -F': ' '/^[[:space:]]*Manufacturer:/{print $2; exit}' | trim)
+mem_part=$(printf '%s\n' "$MEM" | awk -F': ' '/^[[:space:]]*Part Number:/{print $2; exit}' | trim)
+mem_tam=$(printf '%s\n' "$MEM" | awk -F': ' '/^[[:space:]]*Size: [0-9]+ (GB|MB)/{print $2; exit}' | trim)
+mem_vel=$(printf '%s\n' "$MEM" | awk -F': ' '/^[[:space:]]*Speed:/{print $2; exit}' | trim)
 
 # GPU: VGA + 3D + display
 GPU=$( { lista_pci 0300; lista_pci 0302; lista_pci 0380; } | sort -u)
@@ -109,6 +124,13 @@ gpu_drv=$(printf '%s\n' "$GPU" | while IFS='|' read -r s _ _ _ _; do [ -n "$s" ]
 # rede
 NET=$(lista_pci 0200)
 net_drv=$(printf '%s\n' "$NET" | while IFS='|' read -r s _ _ _ _; do [ -n "$s" ] && driver_de "$s"; done | paste -sd ', ' -)
+# Interfaces FISICAS: so as que tem device no /sys (vmbr0/vmbr1/tap/veth sao virtuais).
+fisicas=$(for i in /sys/class/net/*; do
+            [ -e "$i/device" ] || continue
+            st=$(cat "$i/operstate" 2>/dev/null | tr '[:lower:]' '[:upper:]')
+            printf '%s (%s), ' "$(basename "$i")" "${st:-?}"
+          done)
+fisicas=${fisicas%, }
 
 # audio
 AUDIO=$(lista_pci 0403)
@@ -133,10 +155,27 @@ done <<< "$USB_DEV"
 usb_1=$(printf '%s\n' "$usb_tab" | grep -c 'USB 1\.1' || true)
 usb_2=$(printf '%s\n' "$usb_tab" | grep -c 'USB 2\.0' || true)
 usb_3=$(printf '%s\n' "$usb_tab" | grep -cE 'USB 3|USB4' || true)
-usb_ports=$(for u in /sys/bus/usb/devices/usb*; do
-              [ -r "$u/maxchild" ] || continue
-              printf '%s(%s) ' "$(basename "$u")" "$(cat "$u/maxchild" 2>/dev/null)"
-            done)
+# Portas por root hub. Numa B660M-HDV nao existe EHCI/UHCI: os 26 ports estao nos
+# root hubs do UNICO xHCI (um USB 2.0 e um USB 3.x) — contar so o controlador PCI
+# responderia "USB 1.1/2.0: nenhum", que e tecnicamente verdade e praticamente inutil.
+usb_ports_texto=""
+usb_tab_portas=""
+for u in /sys/bus/usb/devices/usb*; do
+  [ -r "$u/version" ] || continue
+  # o sysfs escreve o version com espaco a esquerda (" 1.10"): sem o trim, todo
+  # `case` cai no default e o documento sai "USB ( 1.10), 2 porta(s)" (visto no ferro).
+  ver=$(cat "$u/version" 2>/dev/null | tr -d '[:space:]')
+  mc=$(cat "$u/maxchild" 2>/dev/null | tr -d '[:space:]')
+  case "$ver" in
+    1.*) gen='USB 1.1' ;;
+    2.*) gen='USB 2.0' ;;
+    3.*) gen='USB 3.x' ;;
+    *)   gen="USB ($ver)" ;;
+  esac
+  usb_ports_texto="${usb_ports_texto}$(basename "$u"): $gen, ${mc:-?} porta(s); "
+  usb_tab_portas="${usb_tab_portas}${gen}	${mc:-0}	$(basename "$u")"$'\n'
+done
+usb_ports_texto=${usb_ports_texto%; }
 usb_disp=$(lsusb 2>/dev/null)
 
 # portas fisicas (DMI tipo 8)
@@ -164,15 +203,28 @@ if have ipmitool; then ipmi_txt=$(ipmitool sdr type 'Power Supply' 2>/dev/null |
 tab_gpu=$(printf '%s\n' "$GPU" | awk -F'|' 'NF>2 && $1!="" {printf "| GPU | %s | %s%s%s | `lspci` |\n", $2, $3, ($4!=""?"  (" $4 ")":""), ($5!=""?"  " $5:"")}')
 tab_net=$(printf '%s\n' "$NET" | awk -F'|' 'NF>2 && $1!="" {printf "| Rede | %s | %s%s%s | `lspci` |\n", $2, $3, ($4!=""?"  (" $4 ")":""), ($5!=""?"  " $5:"")}')
 tab_audio=$(printf '%s\n' "$AUDIO" | awk -F'|' 'NF>2 && $1!="" {printf "| Audio | %s | %s%s | `lspci` |\n", $2, $3, ($4!=""?"  (" $4 ")":"")}')
-tab_usb=""
-usb_linha() {  # "rotulo" "padrao" -> 1 linha do resumo por geracao
+# portas por geracao: e a resposta util para "usb1/2/3" (root hubs, nao so controlador)
+tab_usb_portas=$(printf '%s' "$usb_tab_portas" | awk -F'\t' '
+  NF > 2 { p[$1] += $2; h[$1] = h[$1] (h[$1] != "" ? "," : "") $3 }
+  END {
+    n = split("USB 3.x|USB 2.0|USB 1.1", o, "|")
+    for (i = 1; i <= n; i++) if (o[i] in p)
+      printf "| %s | %d porta(s) | root hub %s | `/sys` |\n", o[i], p[o[i]], h[o[i]]
+  }')
+usb_linha() {  # "rotulo" "padrao" -> 1 linha do resumo por controlador PCI
   local n ref
   n=$(printf '%s\n' "$usb_tab" | grep -cE "$2" || true)
   [ "${n:-0}" -eq 0 ] && return 0
   ref=$(printf '%s\n' "$usb_tab" | grep -E "$2" | head -1 | awk -F'\t' '{print $2 " " $3}')
-  printf '| %s | %s controlador(es) | %s | `lspci` + `/sys` |\n' "$1" "$n" "$ref"
+  printf '| %s | %s controlador(es) | %s | `lspci` |\n' "$1" "$n" "$ref"
 }
-tab_usb=$( { usb_linha 'USB 1.1' 'USB 1\.1'; usb_linha 'USB 2.0' 'USB 2\.0'; usb_linha 'USB 3.x/USB4' 'USB 3|USB4'; } )
+tab_usb_ctl=$( { usb_linha 'USB 1.1' 'USB 1\.1'; usb_linha 'USB 2.0' 'USB 2\.0'; usb_linha 'USB 3.x/USB4' 'USB 3|USB4'; } )
+tab_usb=$tab_usb_portas
+if [ -n "$tab_usb_portas" ] && [ -n "$tab_usb_ctl" ]; then
+  tab_usb="${tab_usb}"$'\n'"${tab_usb_ctl}"
+elif [ -z "$tab_usb_portas" ]; then
+  tab_usb=$tab_usb_ctl
+fi
 [ -z "$tab_gpu" ]   && tab_gpu='| GPU | — | nenhuma placa de video PCI encontrada | `lspci` |'
 [ -z "$tab_net" ]   && tab_net='| Rede | — | nenhuma interface PCI de rede encontrada | `lspci` |'
 [ -z "$tab_audio" ] && tab_audio='| Audio | — | nenhum controlador de audio PCI encontrado | `lspci` |'
@@ -193,7 +245,7 @@ cat <<FIM
 |---|---|---|---|
 | Placa-mae | $(campo_ou "${board_vendor:-}") | $(campo_ou "${board_name:-}")$( [ -n "$board_ver" ] && printf ' (rev. %s)' "$board_ver" ) | DMI tipo 2 |
 | Processador | $(campo_ou "${cpu_vendor:-}") | $(campo_ou "${cpu_name:-}")$( [ -n "$cpu_cores" ] && printf ' — %s nucleos / %s threads' "$cpu_cores" "${cpu_threads:-?}" ) | DMI tipo 4 |
-| Memoria | — | ${mem_mods} modulo(s), ${mem_total:-?} visiveis | DMI tipo 17 |
+| Memoria | $(ou "$mem_fab" '—') | $(ou "${mem_mods}x ${mem_tam:-?} ${mem_part:-}" 'modulos nao informados')$( [ -n "$mem_vel" ] && printf ' (%s)' "$mem_vel" ) — ${mem_total:-?} visiveis | DMI tipo 17 |
 $tab_gpu
 $tab_net
 $tab_usb
@@ -227,7 +279,7 @@ $(bloco "" "$(corpo "$MEM" | mask | grep -E '^[[:space:]]*(Size|Form Factor|Type
 
 $(bloco "lspci -vmmnn -d ::0300,0302,0380" "$( { lista_pci 0300; lista_pci 0302; lista_pci 0380; } | awk -F'|' 'NF>2 && $1!="" {printf "%s  %s  %s  %s %s\n", $1, $2, $3, ($4!=""?"(" $4 ")":""), $5}' )")
 Driver em uso: **$(ou "$gpu_drv" 'nenhum (sem modulo carregado)')**
-$( printf '%s' "$gpu_drv" | grep -q 'vfio-pci' && printf '> \`vfio-pci\` = a placa esta reservada para *passthrough* a uma VM; o servidor nao usa video proprio.\n' )
+$( printf '%s' "$gpu_drv" | grep -q 'vfio-pci' && printf '\n> `vfio-pci` = a placa esta reservada para *passthrough* a uma VM: o servidor nao usa video proprio\n> e o HDMI/DisplayPort da placa nao da imagem. O console e SSH/serial.\n' )
 
 ## 5. BIOS
 
@@ -236,7 +288,7 @@ $(bloco "" "$(corpo "$BIOS" | mask | head -12)")
 ## 6. Cooler / watercooler
 
 - **DMI tipo 27 (Cooling Device):** $(ou "$cooler_dmi" 'nada — a maioria das placas de consumidor nao publica esta secao')
-- **Ventoinhas / bombas (sensores):** $(ou "$fan_txt" '\`sensors\` nao instalado ou sem leitura de RPM')
+- **Ventoinhas / bombas (sensores):** $(ou "$fan_txt" '`sensors` nao instalado ou sem leitura de RPM')
 - **USB com cara de controlador de AIO/cooler:** $(ou "$usb_cooler" 'nenhum')
 
 $( if vazio "${usb_cooler:-}${fan_txt:-}${cooler_dmi:-}"; then
@@ -248,7 +300,7 @@ $( if vazio "${usb_cooler:-}${fan_txt:-}${cooler_dmi:-}"; then
 ## 7. Fonte (PSU)
 
 - **DMI tipo 39 (System Power Supply):** $(ou "$psu_dmi" 'nada — praticamente nenhuma placa-mae de consumidor publica esta secao')
-- **IPMI (se houver BMC):** $(ou "$ipmi_txt" '\`ipmitool\` ausente ou sem sensor de fonte')
+- **IPMI (se houver BMC):** $(ou "$ipmi_txt" '`ipmitool` ausente ou sem sensor de fonte')
 
 $( if vazio "${psu_dmi:-}"; then
      printf '> **Conclusao:** a fonte **nao e identificavel por software** — exige abrir o gabinete e ler a\n> etiqueta (marca, modelo, potencia). Nenhuma ferramenta do SO ve isso em placa de consumidor.\n'
@@ -267,7 +319,7 @@ $( printf '%s' "${chassi_vendor:-}" | grep -qiE 'default|to be filled|o\.e\.m|ch
 
 $(bloco "lspci -vmmnn -d ::0200" "$(printf '%s\n' "$NET" | awk -F'|' 'NF>2 && $1!="" {printf "%s  %s  %s %s\n", $1, $2, $3, $5}')")
 Driver: $(ou "$net_drv" '?')
-Interfaces fisicas: $(ou "$(ip -br link 2>/dev/null | awk '$1 !~ /^(lo|docker|veth|br-|tap|fwbr|fwln|fwpr|virbr)/ {print $1 " (" $2 ")"}' | paste -sd '; ' -)" '?')
+Interfaces fisicas: $(ou "$fisicas" '?')
 
 ## 10. USB
 
@@ -278,8 +330,12 @@ Geracao vem do *prog-if* do controlador (00=UHCI e 10=OHCI => USB 1.1; 20=EHCI =
 |---|---|---|---|---|
 $(printf '%s\n' "$usb_tab" | awk -F'\t' 'NF>3 && $1!="" {printf "| %s | %s | %s | %s | %s |\n", $1, $2, $3, $4, $5}')
 $( [ -z "$usb_tab" ] && printf '| — | — | nenhum controlador USB PCI | — | — |\n' )
-Controladores: **${usb_1}** USB 1.1, **${usb_2}** USB 2.0, **${usb_3}** USB 3.x/USB4.
-Portas por root hub (maxchild): $(ou "$usb_ports" '?')
+Controladores PCI: **${usb_1}** USB 1.1, **${usb_2}** USB 2.0, **${usb_3}** USB 3.x/USB4.
+Portas por root hub: $(ou "$usb_ports_texto" 'nenhum root hub em /sys')
+
+> Onde o controlador PCI e um so (xHCI de chipset moderno), as portas USB 2.0 **nao**
+> aparecem como EHCI: elas penduram no *root hub* USB 2.0 do proprio xHCI. E o caso das
+> placas Alder Lake/Raptor Lake — por isso a contagem util e a de root hubs, acima.
 
 Dispositivos conectados agora:
 
@@ -289,10 +345,13 @@ $(bloco "lsusb" "$(ou "$usb_disp" 'lsusb nao instalado')")
 
 | Designador externo | Conector | Tipo de porta |
 |---|---|---|
-$(printf '%s\n' "$portas" | awk -F'|' 'NF>=2 && $1!="" {printf "| %s | %s | %s |\n", $1, $2, $3}')
-$( [ -z "$portas" ] && printf '| — | — | o DMI desta placa nao publica a secao 8 |\n' )
+$( if [ -n "$portas" ]; then
+     printf '%s\n' "$portas" | awk -F'|' 'NF>=2 && $1!="" {printf "| %s | %s | %s |\n", $1, $2, $3}'
+   else
+     printf '| — | — | o DMI desta placa nao publica a secao 8 |\n'
+   fi )
 
-$( [ -z "$portas" ] && printf '> Sem a secao 8, serial/PS-2/video so por inspecao fisica: essas portas ficam no\n> Super I/O e nao aparecem no \`lspci\`.\n' )
+$( [ -z "$portas" ] && printf '> Sem a secao 8, serial/PS-2/video so por inspecao fisica: essas portas ficam no\n> Super I/O e nao aparecem no `lspci`.\n' )
 > HDMI/DisplayPort nao aparecem no DMI: quem os expoe e a **GPU** (secao 4). Porta serial e PS-2,
 > quando existem, ficam no Super I/O — so aparecem aqui.
 
@@ -325,12 +384,12 @@ $(corpo "$CHASSI" | mask | head -20)
 
 ### dmidecode -t 8 (port connector)
 \`\`\`text
-$(corpo "$PORTS" | mask | head -80)
+$(corpo "$PORTS" | mask | head -80 | { read -r l && printf '%s\n' "$l"; cat; } || printf '(o DMI desta placa nao publica a secao 8)\n')
 \`\`\`
 
 ### dmidecode -t 27 (cooling device) e -t 39 (power supply)
 \`\`\`text
-$( { corpo "$COOLER"; corpo "$PSU"; } | mask | head -30)
+$( { corpo "$COOLER"; corpo "$PSU"; } | mask | head -30 | { read -r l && printf '%s\n' "$l"; cat; } || printf '(o DMI desta placa nao publica as secoes 27 e 39)\n')
 \`\`\`
 
 ### lspci (todos os dispositivos)

@@ -19,7 +19,7 @@ com GPU de 8 GB.
 | Item | Estado |
 |---|---|
 | Containers | 12, todos `healthy` |
-| Oráculo | `tests/verify_stack.sh` — **235 verificações**, CI diário 04:10 |
+| Oráculo | `tests/verify_stack.sh` — **245 verificações**, CI diário 04:10 |
 | Alertas | **13 regras** no grupo `lab` (Prometheus) + painel `hermes-alerts` + notificação no Windows |
 | Backup | diário 03:30, retenção **14 diários + 6 mensais**, `webui.db` + `grafana.db` + snapshots, **restore provado** (inclusive em ambiente limpo) |
 | TLS | autoassinado até **2029-01-20**, alerta aos 30 dias, renovação em 1 comando |
@@ -49,6 +49,25 @@ Medido no host em **2026-10-23** (`lscpu`, `dmidecode`, `lsblk`, `docker ps`, `o
 > inventário próprio — placa-mãe, CPU, GPU, rede, USB 1.1/2.0/3.x e portas do painel:
 > [`docs/architecture/INVENTARIO-HARDWARE-PROXMOX.md`](docs/architecture/INVENTARIO-HARDWARE-PROXMOX.md)
 > (gerado por `tools/inventario-proxmox.ps1`, a partir do Windows).
+
+### Servidor físico (Proxmox — `192.168.15.221`)
+
+Medido pelo inventário de 2026-10-23 (DMI/SMBIOS, `lspci`, `/sys`). É o ferro que hospeda a VM.
+
+| Item | Especificação |
+|---|---|
+| Placa-mãe | **ASRock B660M-HDV** — BIOS AMI **20.01** (27/11/2025), micro-ATX, socket LGA1700 |
+| CPU | Intel Core i7-13700 — **16 núcleos / 24 threads** (até 5200 MHz, Raptor Lake) |
+| Memória | **2 × 16 GB Kingston Fury `KF3200C16D4/16GX`** — **31 GiB** visíveis, rodando a **2400 MT/s** (kit DDR4-3200; XMP desligado no BIOS) |
+| GPU | **AMD Radeon RX 6600** (ASRock, Navi 23, 8 GB) — única VGA, presa em `vfio-pci` para a VM: o ferro **não tem saída de vídeo local** |
+| Rede | **Intel I219-V** (`e1000e`, `enp0s31f6`) — Gigabit |
+| USB | **1 controlador xHCI** (Alder Lake-S): root hub **USB 2.0** com 16 portas e **USB 3.x** com 10 portas; nenhum controlador USB 1.1 dedicado |
+| Áudio | Intel Alder Lake-S HD Audio (placa) + áudio HDMI/DP da GPU |
+| SO | **Proxmox VE 9.2.21** · Debian 13 trixie · kernel `7.0.14-23-pve` · host `pve-aorus` |
+| Fonte · cooler · gabinete | **não são vistos por software** — exigem ler a etiqueta dentro do gabinete (o DMI só traz `To Be Filled By O.E.M.`); o inventário diz isso em vez de inventar |
+
+> Números de série, UUID e *asset tag* são mascarados no documento de propósito (o arquivo vai
+> também para o espelho público); MAC address não é coletado.
 
 ### Software do host
 
