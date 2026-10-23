@@ -1,0 +1,19 @@
+# /etc/cron.d/questoes — banco de questões do eixo de estudos (share -> SQLite).
+#
+# Instalado por: sudo install -m 644 ops/cron/questoes.cron /etc/cron.d/questoes
+# Runner: ops/bin/questoes.sh (instalado em /usr/local/bin/questoes).
+#
+# A cada 30 min, aos 5 e 35 (não no :00/:30 do rag-ingest): o import lê as
+# provas/gabaritos do share, roda OCR quando o gabarito é imagem e reescreve o
+# _relatorio/QUESTOES.md + referencias/estatisticas-questoes.md. O offset garante
+# que o .md publicado já está estável (>30 s) quando o worker de ingestão rodar
+# aos :15/:45 — o RAG pega a versão nova sem esperar um ciclo extra.
+#
+# Roda como tlandskron: é o dono do share (~/documents) e do estado (~/rag-state).
+# Como root, o relatório e o .md nasceriam com dono root dentro do share.
+# O wrapper toma flock, então uma execução travada não é atropelada.
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+HOME=/home/tlandskron
+
+5,35 * * * * tlandskron /usr/local/bin/questoes

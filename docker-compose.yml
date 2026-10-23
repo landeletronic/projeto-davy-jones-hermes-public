@@ -1,0 +1,391 @@
+# =============================================================================
+# Hermes × Mem0 — stack core (lab davy-jones-hermes)
+# Honcho REMOVIDO (2026-10-09). Mem0 roda in-process no Hermes (mode: oss).
+# Fase 6: RAG jurídica = Open WebUI Knowledge → Qdrant (prefixo owui_*)
+#          + Docling Serve (PDF/DOCX → Markdown) + embeddings bge-m3.
+# Subir fase a fase: qdrant → ollama → docling → open-webui → hermes → dashboard
+# =============================================================================
+name: hermes-architect
+
+services:
+  # ---------------------------------------------------------------------------
+  # FASE 1 — Vector store compartilhado (RAG futura + mem0_memories)
+  # ---------------------------------------------------------------------------
+  qdrant:
+    image: qdrant/qdrant:v1.19.2
+    container_name: qdrant
+    restart: unless-stopped
+    ports:
+      - "6333:6333"
+    volumes:
+      - qdrant_data:/qdrant/storage
+    networks:
+      - data
+      - backend
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c ':> /dev/tcp/127.0.0.1/6333' || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  # ---------------------------------------------------------------------------
+  # FASE 2 — LLM local (extração mem0 + embeddings + chat)
+  # RX 6600 (gfx1032) → HSA_OVERRIDE 10.3.0
+  # ---------------------------------------------------------------------------
+  ollama:
+    # pinado por digest (tag flutuante `rocm` mudaria sozinha)
+    image: ollama/ollama@sha256:58b807f105a7a0b1f04ee4203627a8e1d5c22489263ed673465b540744b94d45
+    container_name: ollama
+    restart: unless-stopped
+    privileged: true
+    ipc: host
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    devices:
+      - /dev/kfd:/dev/kfd
+      - /dev/dri:/dev/dri
+    group_add:
+      - video
+      - "991"
+    environment:
+      HSA_OVERRIDE_GFX_VERSION: "10.3.0"
+      OLLAMA_FLASH_ATTENTION: "1"
+      # q8_0 fazia o qwen3:4b-64k (8.3 GB) estourar os 8 GB da RX 6600: 13% das
+      # camadas iam para a CPU (~31 tok/s). Em q4_0 ele cabe inteiro (5.6 GB,
+      # 100% GPU, ~62 tok/s) e ainda sobra espaço para o bge-m3 (664 MB) — os
+      # dois ficam residentes e a consulta RAG não paga swap.
+      OLLAMA_KV_CACHE_TYPE: q4_0
+      OLLAMA_MAX_LOADED_MODELS: "2"
+      # 5 min (padrão) fazia toda sessão de estudo pagar a carga do modelo de
+      # novo (a 1ª pergunta levou 328 s contra 29 s com o modelo quente).
+      OLLAMA_KEEP_ALIVE: 30m
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    networks:
+      - backend
+
+  # ---------------------------------------------------------------------------
+  # FASE 6 — Extração de documentos para a RAG jurídica (Docling Serve)
+  # CPU-only: PDFs/DOCX → Markdown estruturado (layout + tabelas + OCR pt-BR).
+  # Não usa a GPU: a RX 6600 fica dedicada ao chat/embeddings do Ollama.
+  # ---------------------------------------------------------------------------
+  docling:
+    image: ghcr.io/docling-project/docling-serve-cpu:v1.37.0
+    container_name: docling
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:5001:5001" # só localhost (debug); o OWUI usa a rede backend
+    volumes:
+      - docling_cache:/opt/docling-cache # pesos dos modelos (persistem)
+    environment:
+      DOCLING_SERVE_ARTIFACTS_PATH: /opt/docling-cache
+      DOCLING_SERVE_ENABLE_UI: "false"
+      DOCLING_SERVE_MAX_SYNC_WAIT: "3600" # medido 2026-10-22: apostila de 178 p = 1123 s, 305 p ≈ 1900 s; prova fica <60s
+      DOCLING_SERVE_ENG_LOC_NUM_WORKERS: "1" # 1 cópia dos modelos em RAM
+      DOCLING_NUM_THREADS: "8" # host tem 16 vCPU; deixa folga p/ Ollama
+      DOCLING_DEVICE: cpu
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - import urllib.request; urllib.request.urlopen('http://127.0.0.1:5001/health', timeout=5)
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 180s # 1º boot baixa/carrega modelos
+    networks:
+      - backend
+
+  # ---------------------------------------------------------------------------
+  # FASE 6.2b — SearXNG (metabusca local). Instalado, mas o OWUI o usa só se
+  # ENABLE_WEB_SEARCH=true (busca web exige internet — não é usada por padrão).
+  # ---------------------------------------------------------------------------
+  searxng:
+    image: searxng/searxng@sha256:8bdd9aa136b2dc3b9332cf24714fa34a375b8a1949a1201ec900c24d7378596e # 2026.10.17
+    container_name: searxng
+    restart: unless-stopped
+    volumes:
+      - ./searxng:/etc/searxng:rw
+    environment:
+      SEARXNG_BASE_URL: http://searxng:8080/
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:8080/healthz || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    networks:
+      - backend
+
+  # ---------------------------------------------------------------------------
+  # FASE 3 — Interface + auth (e-mail/senha) — decisão C
+  # ---------------------------------------------------------------------------
+  open-webui:
+    # pinado por digest — v0.12.3 (upgrade de 0.11.4 em 2026-10-18)
+    image: ghcr.io/open-webui/open-webui@sha256:a537bbe1e6b428820f52ed4a029d7fff97062e24d5cf32c365fba36fd0542def
+    container_name: open-webui
+    restart: unless-stopped
+    depends_on:
+      ollama:
+        condition: service_healthy
+      qdrant:
+        condition: service_healthy
+      docling:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:3000:8080" # direto só no host; LAN entra pelo nginx (443)
+    volumes:
+      - open_webui_data:/app/backend/data
+      # Eixo de estudos: o share de documentos entra SOMENTE LEITURA em /documents.
+      # O worker (tools/rag_ingest.py) aponta o uploader para /documents/<caminho>,
+      # sem copiar arquivo nenhum para dentro do container.
+      - /home/tlandskron/documents:/documents:ro
+    environment:
+      OLLAMA_BASE_URL: http://ollama:11434
+      WEBUI_AUTH: "true" # ANTES era "false" — decisão C exige login e-mail+senha
+      WEBUI_URL: https://192.168.15.231
+      # --- Fase 6: RAG (Knowledge) 100% local ---
+      VECTOR_DB: qdrant # mesmo Qdrant do mem0, coleções separadas (owui_*)
+      QDRANT_URI: http://qdrant:6333
+      QDRANT_COLLECTION_PREFIX: owui
+      RAG_EMBEDDING_ENGINE: ollama
+      RAG_EMBEDDING_MODEL: bge-m3 # 1024 dims (mesma do mem0)
+      RAG_OLLAMA_BASE_URL: http://ollama:11434
+      CONTENT_EXTRACTION_ENGINE: docling
+      DOCLING_SERVER_URL: http://docling:5001
+      # --- Fase 6.2b: SearXNG pronto, mas busca web DESLIGADA (100% local) ---
+      ENABLE_WEB_SEARCH: "false"
+      WEB_SEARCH_ENGINE: searxng
+      SEARXNG_QUERY_URL: http://searxng:8080/search?q=<query>
+    networks:
+      - frontend
+      - backend
+
+  # ---------------------------------------------------------------------------
+  # FASE 6.2 — Nginx: TLS na LAN (443) → Open WebUI; 80 redireciona
+  # ---------------------------------------------------------------------------
+  nginx:
+    image: nginx@sha256:892bb2152464f0c5d8972593a5f5afaf8054552580b699d95f8ff4af08c2d33d # 1.31.7-alpine
+    container_name: nginx
+    restart: unless-stopped
+    depends_on:
+      open-webui:
+        condition: service_healthy
+    ports:
+      - "80:80"
+      - "443:443"
+      - "3001:3001" # Grafana via TLS (proxy interno → grafana:3000)
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./nginx/certs:/etc/nginx/certs:ro
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1/healthz || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - frontend
+      - backend
+
+  # ---------------------------------------------------------------------------
+  # FASE 4 — Agente orquestrador (gateway + mem0 modo OSS in-process)
+  # ---------------------------------------------------------------------------
+  hermes:
+    build:
+      context: ./ops/docker/hermes-tools
+      dockerfile: Dockerfile
+    image: hermes-tools:local
+    container_name: hermes-agent
+    command: gateway run
+    restart: unless-stopped
+    depends_on:
+      ollama:
+        condition: service_healthy
+      qdrant:
+        condition: service_healthy
+    ports:
+      - "8642:8642"
+    environment:
+      API_SERVER_ENABLED: "true"
+      API_SERVER_HOST: 0.0.0.0
+      API_SERVER_KEY: ${API_SERVER_KEY:?defina API_SERVER_KEY no .env (ver .env.example)}
+      API_SERVER_PORT: "8642"
+      HERMES_CONFIG_PATH: /opt/data/config.yaml
+      HERMES_ENV_PATH: /opt/data/.env
+      HERMES_GID: "1000"
+      HERMES_UID: "1000"
+      MEM0_MODE: oss # explícito: nunca cair no platform (nuvem)
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - import urllib.request; urllib.request.urlopen('http://127.0.0.1:8642/health', timeout=5)
+      interval: 30s
+      timeout: 15s
+      retries: 3
+      start_period: 1m0s
+    volumes:
+      - /home/tlandskron/.hermes:/opt/data
+      - /home/tlandskron/hermes-architect:/workspace
+      # Sem /var/run/docker.sock e sem ~/.ssh: a ferramenta shell roda LOCAL
+      # (terminal.backend: local), então não precisa de nenhum dos dois — e com
+      # eles um comando pedido no chat valeria root no host / as chaves do host.
+      # Se um dia o terminal virar backend `docker`, o socket volta ACOMPANHADO
+      # de sandbox pinada por digest e sem os bind-mounts acima.
+    networks:
+      - frontend
+      - backend
+      - data
+
+  # ---------------------------------------------------------------------------
+  # Dashboard (mesma imagem) — usuário/senha/secret vêm do .env (ver .env.example)
+  # ---------------------------------------------------------------------------
+  hermes-dashboard:
+    image: hermes-tools:local
+    container_name: hermes-dashboard
+    command: dashboard --host 0.0.0.0 --port 9119 --no-open
+    restart: unless-stopped
+    depends_on:
+      hermes:
+        condition: service_healthy
+    ports:
+      - "9119:9119"
+    # /api/health responde 200 sem auth (o resto exige login).
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:9119/api/health >/dev/null || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    environment:
+      GATEWAY_HEALTH_URL: http://hermes:8642/health
+      HERMES_DASHBOARD_BASIC_AUTH_USERNAME: ${HERMES_DASHBOARD_BASIC_AUTH_USERNAME:?defina no .env (ver .env.example)}
+      HERMES_DASHBOARD_BASIC_AUTH_PASSWORD: ${HERMES_DASHBOARD_BASIC_AUTH_PASSWORD:?defina no .env (ver .env.example)}
+      HERMES_DASHBOARD_BASIC_AUTH_SECRET: ${HERMES_DASHBOARD_BASIC_AUTH_SECRET:?defina no .env (ver .env.example)}
+      HERMES_GID: "1000"
+      HERMES_UID: "1000"
+    volumes:
+      - /home/tlandskron/.hermes:/opt/data
+    networks:
+      - backend
+
+  # ---------------------------------------------------------------------------
+  # FASE 6.3 — Monitoramento: Prometheus + node-exporter + cAdvisor + Grafana
+  # Grafana sai pela LAN só via TLS (nginx :3001). Demais: rede interna.
+  # ---------------------------------------------------------------------------
+  prometheus:
+    image: prom/prometheus@sha256:efd719c99d83b060d9daefdcf00360461adf279f45ef5391f8d111892118753e # v3.15.0
+    container_name: prometheus
+    restart: unless-stopped
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=15d
+      - --storage.tsdb.retention.size=2GB
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/alert-rules.yml:/etc/prometheus/alert-rules.yml:ro
+      - prometheus_data:/prometheus
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:9090/-/ready || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    networks:
+      - backend
+
+  node-exporter:
+    image: prom/node-exporter@sha256:1b4e4438faca4dd7e001dd445d161a4a2091b0fededa84093b3a8dfeae1f1be0 # v1.12.1
+    container_name: node-exporter
+    restart: unless-stopped
+    pid: host
+    command:
+      - --path.procfs=/host/proc
+      - --path.sysfs=/host/sys
+      - --path.rootfs=/rootfs
+      - --collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($|/)
+      - --collector.textfile.directory=/textfile # métricas do CI (hermes_ci_*)
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+      - ./ci/textfile:/textfile:ro
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:9100/metrics || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - backend
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor@sha256:3de2bd5203120b866d74a9b283b2ffb8ec382fbf9dc321814700c6ea6f44ec57 # v0.55.1
+    container_name: cadvisor
+    restart: unless-stopped
+    privileged: true
+    command:
+      - --housekeeping_interval=30s
+      - --docker_only=true
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    networks:
+      - backend
+
+  grafana:
+    image: grafana/grafana@sha256:dbbc38ea21103cefb50396340cd88afec779c7e070b0a7bf5a75b4ce46651d3f # 13.2.4
+    container_name: grafana
+    restart: unless-stopped
+    depends_on:
+      prometheus:
+        condition: service_healthy
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-hermes-lab-change-me}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_SERVER_ROOT_URL: https://192.168.15.231:3001
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+      GF_ANALYTICS_CHECK_FOR_PLUGIN_UPDATES: "false"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:3000/api/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - backend
+
+networks:
+  frontend:
+  backend:
+  data:
+
+volumes:
+  qdrant_data:
+  ollama_data:
+  open_webui_data:
+  docling_cache:
+  prometheus_data:
+  grafana_data:

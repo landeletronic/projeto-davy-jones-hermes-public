@@ -1,0 +1,12 @@
+# /etc/cron.d/mem0-maintenance — higiene diária da memória mem0 (03:00).
+#
+# Instalado por: sudo install -m 644 ops/cron/mem0-maintenance.cron /etc/cron.d/mem0-maintenance
+# Runner: ops/bin/mem0_maintenance.py (instalado em /usr/local/bin/mem0-maintenance).
+#
+# 03:00 — 30 min antes do backup (03:30), então o artefato já leva a memória limpa.
+# Para ligar o TTL (default desligado), exporte MEM0_RETENTION_DAYS antes da linha:
+#   MEM0_RETENTION_DAYS=180 ... (decisão do escritório — LGPD/sigilo)
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+0 3 * * * tlandskron /usr/local/bin/mem0-maintenance >> /home/tlandskron/backups/mem0-maintenance.log 2>&1

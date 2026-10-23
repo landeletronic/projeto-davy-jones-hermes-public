@@ -1,0 +1,20 @@
+use_default_settings: true
+
+general:
+  instance_name: "Hermes Lab Search"
+
+server:
+  secret_key: "e6a6ccddd7f34e72be1a206f366cadb3b710f634259d4246912c4ba42268abd5"
+  limiter: false
+  public_instance: false
+  image_proxy: false
+  method: "GET"
+
+search:
+  safe_search: 0
+  formats:
+    - html
+    - json
+
+ui:
+  default_locale: "pt-BR"

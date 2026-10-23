@@ -1,0 +1,12 @@
+# /etc/cron.d/tls-cert — validade do certificado do nginx (03:20).
+#
+# Instalado por: sudo install -m 644 ops/cron/tls-cert.cron /etc/cron.d/tls-cert
+# Runner: ops/bin/tls_cert_metrics.sh (instalado em /usr/local/bin/tls-cert-metrics).
+#
+# 03:20 — depois da manutenção do mem0 (03:00) e antes do backup (03:30), então
+# o artefato diário já leva a métrica do dia.
+# Alerta: LabTLSCertExpiring (< 30 dias) / LabTLSCertExpired (< 0).
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+20 3 * * * tlandskron /usr/local/bin/tls-cert-metrics >> /home/tlandskron/backups/tls-cert.log 2>&1

@@ -1,0 +1,40 @@
+# =============================================================================
+# .gitignore — o que NUNCA entra no controle de versão
+#
+# Regra: segredo não se versiona; artefato grande não se versiona; lixo de build
+# não se versiona. O resto (compose, configs, scripts, testes, docs) é fonte.
+# =============================================================================
+
+# --- Segredos -----------------------------------------------------------------
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+*.crt
+*.p12
+*.pfx
+nginx/certs/
+dashboard-api-key*.txt
+
+# --- Build / Python -----------------------------------------------------------
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+*.egg-info/
+
+# --- Artefatos grandes ou de terceiros (não são fonte do projeto) -------------
+# archive/ guarda o que foi retirado da árvore ativa (ebook, PDFs antigos, exports
+# de sessão). Não é fonte, não vai para o host e não entra no git: o export de
+# sessão pode conter segredo (a chave do gateway já apareceu num deles).
+archive/
+*.zip
+*.tar.gz
+
+# --- Estado local do agente / SO ---------------------------------------------
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini

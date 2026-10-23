@@ -1,0 +1,40 @@
+gateway:
+  api_server:
+    enabled: true
+    host: 0.0.0.0
+    # a chave NÃO fica aqui: vem de API_SERVER_KEY no .env (compose)
+    port: 8642
+memory:
+  provider: mem0
+  inject_context: true
+  saveMessages: true
+model:
+  api_key: no-key
+  base_url: http://ollama:11434/v1
+  context_length: 65536
+  default: qwen3:4b-64k
+  max_tokens: 8192
+  provider: custom
+  temperature: 0.3
+  ollama_num_ctx: 65536
+sandbox:
+  image: ghcr.io/all-hands-ai/runtime:latest
+  timeout: 300
+  type: docker
+terminal:
+  backend: local
+  cwd: /workspace
+tools:
+  # Ponte tool_call/tool_search desativada: o qwen3:4b nao monta o array de calls.
+  tool_search:
+    enabled: "off"
+  browser:
+    enabled: true
+    headless: true
+  enabled:
+    - shell
+    - browse
+    - search
+  search:
+    provider: none
+_config_version: 50

@@ -1,0 +1,17 @@
+# ai-memory project marker — created 2026-10-18
+#
+# This directory became a git repository on 2026-10-20 (baseline commit before
+# the folder restructure) but still lives OUTSIDE $HOME
+# (/mnt/davy-jones-hermes, a CIFS mount). Per docs/marker-file.md that case
+# requires a marker in the exact cwd so the project coordinate resolves
+# deterministically instead of falling back to the folder basename.
+#
+# The OpenCode MCP entry is a STATIC client (mcp-bridge --no-session-id), which
+# must pass workspace+project explicitly on every project-scoped call: this file
+# is the authoritative source for those two names.
+#
+# Values match what the CLI already resolved (doctor: "default/davy-jones-hermes").
+# Renaming either key later orphans the memory already captured under it.
+
+workspace = "default"
+project = "davy-jones-hermes"

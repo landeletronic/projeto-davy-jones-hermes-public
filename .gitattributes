@@ -1,0 +1,9 @@
+# Normaliza fim de linha: os scripts rodam no Linux (bash) e um CRLF vindo do
+# Windows quebra o shebang ("bad interpreter: /bin/bash^M"). PS1 fica CRLF.
+* text=auto eol=lf
+*.ps1 text eol=crlf
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.pdf binary
+*.png binary
+*.jpg binary

@@ -1,0 +1,152 @@
+# =============================================================================
+# alert-rules.yml — alertas do lab davy-jones-hermes (Prometheus).
+#
+# Carregado por prometheus.yml (`rule_files`). Visíveis em /alerts e no painel
+# "Hermes Lab — Alertas" do Grafana (ALERTS{alertstate="firing"}).
+#
+# Sem serviço externo: o lab é offline, então não há e-mail/Slack. A notificação
+# ativa é o `ops/windows/watch-alerts.ps1` (Windows, a cada 30 min) + o painel.
+# =============================================================================
+groups:
+  - name: lab
+    interval: 30s
+    rules:
+      # Qualquer alvo que o Prometheus deixe de raspar (container caiu/travou).
+      - alert: LabContainerDown
+        expr: up == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Alvo {{ $labels.job }} fora do ar"
+          description: "{{ $labels.instance }} não responde ao scrape há mais de 5 minutos."
+
+      # Disco raiz acima de 85% (o scrape vê o / do host via node-exporter).
+      - alert: LabDiskHigh
+        expr: |
+          (1 - (node_filesystem_avail_bytes{mountpoint="/", fstype="ext4"}
+                / node_filesystem_size_bytes{mountpoint="/", fstype="ext4"})) > 0.85
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Disco raiz acima de 85%"
+          description: "{{ $value | humanizePercentage }} usado em {{ $labels.instance }}."
+
+      # Backup diário (03:30) não roda ou falha por mais de 48h.
+      - alert: LabBackupStale
+        expr: time() - hermes_backup_last_success_timestamp_seconds > 48 * 3600
+        for: 10m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Backup do lab com mais de 48h"
+          description: "Último backup bem-sucedido há {{ $value | humanizeDuration }}."
+
+      # A métrica sumiu: o textfile do backup não está sendo publicado.
+      - alert: LabBackupMetricMissing
+        expr: absent(hermes_backup_last_success_timestamp_seconds)
+        for: 30m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Métrica de backup ausente"
+          description: "O node-exporter não vê hermes_backup_* (textfile não publicado?)."
+
+      # Certificado autoassinado não é renovado por ninguém: 30 dias é a janela
+      # para rodar tools/make_tls_cert.sh --force --reload e avisar o escritório.
+      - alert: LabTLSCertExpiring
+        expr: hermes_tls_cert_days_left < 30
+        for: 1h
+        labels:
+          severity: warning
+        annotations:
+          summary: "Certificado TLS expira em menos de 30 dias"
+          description: "Renove: tools/make_tls_cert.sh --force --reload (navegadores voltam a avisar)."
+      - alert: LabTLSCertExpired
+        expr: hermes_tls_cert_days_left < 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Certificado TLS EXPIRADO — HTTPS quebrado"
+          description: "Rode tools/make_tls_cert.sh --force --reload agora."
+
+      # O job diário das 03:00 (dedup/teto do mem0) parou.
+      - alert: LabMem0MaintenanceLate
+        expr: time() - hermes_mem0_last_run_timestamp_seconds > 48 * 3600
+        for: 1h
+        labels:
+          severity: warning
+        annotations:
+          summary: "Manutenção do mem0 atrasada (>48h)"
+          description: "O job diário das 03:00 não roda: a memória volta a crescer sem dedup/teto."
+
+      # O oráculo (04:10) rodou e falhou.
+      - alert: LabCIFailed
+        expr: hermes_ci_last_run_success == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Oráculo (CI) vermelho"
+          description: "A última execução do verify_stack.sh falhou. Rode /usr/local/bin/hermes-ci no host para ver os FAILs."
+
+      # O cron do CI parou (relógio do container, agenda, daemon).
+      - alert: LabCILate
+        expr: time() - hermes_ci_last_run_timestamp_seconds > 30 * 3600
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "CI sem execução há mais de 30h"
+          description: "O cron das 04:10 pode estar parado — verifique o daemon e /etc/cron.d/hermes-ci."
+
+      # ---------------------------------------------------------------------
+      # Eixo de estudos (Fase 4): ingestão do share de documentos no RAG.
+      # As métricas hermes_rag_* são publicadas pelo próprio worker (cron */15)
+      # no textfile do node-exporter — não há cron extra só para métrica.
+      # ---------------------------------------------------------------------
+
+      # Documento no share há mais de 24 h que NÃO entrou na base (falha de
+      # extração/upload ou arquivo em _rejeitados/). 24 h é o prazo para alguém
+      # notar e corrigir; passou disso, precisa de olho humano.
+      - alert: LabRagPendente24h
+        expr: hermes_rag_pendente_mais_antigo_segundos > 24 * 3600
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Documento no share há mais de 24h sem entrar na base"
+          description: "Veja T:\\_rejeitados\\ e _relatorio\\INGESTAO.md; depois de corrigir: rag-ingest --retentar."
+
+      # O worker (cron */15) parou: nenhuma execução nova há mais de 2 h.
+      - alert: LabRagParado
+        expr: time() - hermes_rag_ultima_execucao_timestamp_seconds > 2 * 3600
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Ingestão de documentos parada há mais de 2h"
+          description: "O cron */15 não roda: verifique o daemon, /etc/cron.d/rag-ingest, flock travado ou host desligado."
+
+      # A última execução terminou com falha (exit 1 = arquivo rejeitado).
+      - alert: LabRagFalhou
+        expr: hermes_rag_ultima_execucao_sucesso == 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Ingestão terminou com falha"
+          description: "Um documento foi para _rejeitados/ (motivo no .motivo.txt). Corrija e rode: rag-ingest --retentar."
+
+      # O textfile não está sendo publicado (permissão, caminho errado, worker
+      # quebrado antes de escrever): sem métrica, os alertas acima ficam cegos.
+      - alert: LabRagMetricMissing
+        expr: absent(hermes_rag_ultima_execucao_timestamp_seconds)
+        for: 30m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Métrica da ingestão ausente"
+          description: "O node-exporter não vê hermes_rag_* (textfile não publicado?). Rode rag-ingest no host e confira ~/hermes-architect/ci/textfile/."

@@ -1,0 +1,10 @@
+# /etc/cron.d/hermes-backup — backup diário do lab (03:30).
+#
+# Instalado por: sudo install -m 644 ops/cron/hermes-backup.cron /etc/cron.d/hermes-backup
+# O runner é ops/bin/backup_stack.sh (instalado em /usr/local/bin/hermes-backup).
+#
+# Roda 40 min antes do CI (04:10), então o oráculo valida o backup recém-feito.
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+30 3 * * * tlandskron /usr/local/bin/hermes-backup >> /home/tlandskron/backups/backup.log 2>&1

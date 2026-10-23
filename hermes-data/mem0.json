@@ -1,0 +1,31 @@
+{
+  "mode": "oss",
+  "agent_id": "hermes",
+  "sync_max_chars": 6000,
+  "oss": {
+    "llm": {
+      "provider": "ollama",
+      "config": {
+        "model": "qwen3:8b-extract",
+        "temperature": 0,
+        "max_tokens": 2000,
+        "ollama_base_url": "http://ollama:11434"
+      }
+    },
+    "embedder": {
+      "provider": "ollama",
+      "config": {
+        "model": "bge-m3",
+        "ollama_base_url": "http://ollama:11434"
+      }
+    },
+    "vector_store": {
+      "provider": "qdrant",
+      "config": {
+        "url": "http://qdrant:6333",
+        "collection_name": "mem0_memories",
+        "embedding_model_dims": 1024
+      }
+    }
+  }
+}

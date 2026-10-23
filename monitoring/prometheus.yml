@@ -1,0 +1,30 @@
+# Prometheus — scrape do lab davy-jones-hermes (tudo interno à rede `backend`)
+global:
+  scrape_interval: 30s
+  evaluation_interval: 30s
+
+# Regras de alerta do lab (container down, disco, backup, CI).
+# Ver monitoring/alert-rules.yml e o painel "Hermes Lab — Alertas".
+rule_files:
+  - /etc/prometheus/alert-rules.yml
+
+scrape_configs:
+  - job_name: prometheus
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # Métricas do host (CPU, RAM, disco, rede, load)
+  - job_name: node
+    static_configs:
+      - targets: ['node-exporter:9100']
+
+  # Métricas por container (CPU, RAM, rede, disco)
+  - job_name: cadvisor
+    static_configs:
+      - targets: ['cadvisor:8080']
+
+  # Qdrant expõe /metrics na própria porta
+  - job_name: qdrant
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['qdrant:6333']

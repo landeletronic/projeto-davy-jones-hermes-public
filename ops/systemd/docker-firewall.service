@@ -1,0 +1,22 @@
+# =============================================================================
+# docker-firewall.service — reaplica as regras DOCKER-USER no boot.
+#
+# A cadeia DOCKER-USER é recriada a cada restart do Docker, então as regras do
+# /usr/local/bin/docker-firewall.sh se perdem. Este oneshot roda depois do
+# docker.service e as repõe. Instalado por ops/deploy/sync-to-host.ps1.
+# =============================================================================
+[Unit]
+Description=Reaplica regras DOCKER-USER do lab (o Docker ignora o ufw)
+After=docker.service
+Requires=docker.service
+# PartOf: `systemctl restart docker` (ex.: deploy de daemon.json) recria a cadeia
+# DOCKER-USER; sem isto, as regras ficariam ausentes até o próximo boot.
+PartOf=docker.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/bin/docker-firewall.sh
+
+[Install]
+WantedBy=multi-user.target

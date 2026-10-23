@@ -1,0 +1,10 @@
+# /etc/cron.d/hermes-ci — roda o oráculo (tests/verify_stack.sh) todos os dias.
+# Instalado por: sudo install -m 644 ops/cron/hermes-ci.cron /etc/cron.d/hermes-ci
+# Backend: /usr/local/bin/hermes-ci (scripts/ci_run.sh do repositório).
+#
+# Roda às 04:10 (o backup roda 03:30, então o CI valida o estado logo depois).
+# Resultado: ~/ci/last-run.json + ~/ci/last.log + métricas hermes_ci_* no Grafana.
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+10 4 * * * tlandskron /usr/local/bin/hermes-ci --quiet >> /home/tlandskron/ci/cron.log 2>&1
