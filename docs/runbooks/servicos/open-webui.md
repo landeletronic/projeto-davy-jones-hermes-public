@@ -22,7 +22,7 @@ Login de teste na UI é o que prova o resto: usuário com e-mail → o `user_id`
 ## Reiniciar
 
 ```bash
-cd /home/tlandskron/hermes-architect && docker compose restart open-webui
+cd /home/usuario/hermes-architect && docker compose restart open-webui
 ```
 
 ## Sintomas típicos

@@ -17,7 +17,7 @@ docker exec searxng wget -qO- 'http://127.0.0.1:8080/search?q=teste&format=json'
 ## Reiniciar
 
 ```bash
-cd /home/tlandskron/hermes-architect && docker compose restart searxng
+cd /home/usuario/hermes-architect && docker compose restart searxng
 ```
 
 ## Sintomas típicos

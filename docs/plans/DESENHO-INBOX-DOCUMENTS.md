@@ -24,7 +24,7 @@ sentido para cada concurso, e um processo que ingere **uma vez**, registra e sab
 
 | Onde | Papel |
 |---|---|
-| **Host (`/home/tlandskron/documents`)** | **fonte única** — os arquivos vivem aqui, são processados aqui e entram no backup daqui |
+| **Host (`/home/usuario/documents`)** | **fonte única** — os arquivos vivem aqui, são processados aqui e entram no backup daqui |
 | **Windows / outros PCs** | acessam a mesma pasta por **SMB** (`\\192.168.15.231\documentos`), como uma unidade de rede |
 | **Repositório** | **nada** de documentos: a árvore sincronizada é código (check de 1 MB) e vai ao GitHub |
 
@@ -43,7 +43,7 @@ deploy.
 ## 3. A árvore
 
 ```
-/home/tlandskron/documents/               ← RAIZ DO SHARE "documentos"
+/home/usuario/documents/               ← RAIZ DO SHARE "documentos"
 ├── LEIA-ME.txt                           ← as regras desta pasta (este resumo, em 10 linhas)
 ├── concurso/
 │   └── tiradentes-bm/
@@ -68,7 +68,7 @@ deploy.
 Fora do share, onde o usuário não mexe:
 
 ```
-/home/tlandskron/rag-state/
+/home/usuario/rag-state/
 ├── manifest.csv      ← o que já foi ingerido (sha256, base, file_id, data)
 └── ingest.log        ← log técnico de cada execução
 ```
@@ -228,8 +228,8 @@ tomada é: **modelo de visão na ingestão em lote, nunca no chat**.
    map to guest = never               # sem acesso anônimo
 
 [documentos]
-   path = /home/tlandskron/documents
-   valid users = tlandskron
+   path = /home/usuario/documents
+   valid users = usuario
    read only = no
    create mask = 0644
    directory mask = 0755
@@ -239,8 +239,8 @@ tomada é: **modelo de visão na ingestão em lote, nunca no chat**.
   Isso muda a política de INPUT do lab (hoje 22/80/443/3001/9119): passa a ter 6 portas, e a
   suíte passa a exigir a regra **restrita à sub-rede** (não `Anywhere`).
 - **No Windows, uma vez só:** Explorer → *Mapear unidade de rede* → `\\192.168.15.231\documentos`
-  → marcar *Conectar usando credenciais diferentes* → usuário `tlandskron` + a senha SMB.
-  Também funciona por `net use T: \\192.168.15.231\documentos /user:tlandskron`.
+  → marcar *Conectar usando credenciais diferentes* → usuário `usuario` + a senha SMB.
+  Também funciona por `net use T: \\192.168.15.231\documentos /user:usuario`.
 - **Senha SMB é separada da senha do Linux** (`smbpasswd`), e fica só no host (nunca no repo).
 - **Mais usuários depois:** cada pessoa ganha conta SMB própria; o share continua um só (mesma
   árvore), e a autoria fica no dono do arquivo.
@@ -254,7 +254,7 @@ tomada é: **modelo de visão na ingestão em lote, nunca no chat**.
   0.12.3 (API key **não** vale como sessão humana).
 - O container recebe a pasta como **`:ro`** — o RAG lê, não escreve.
 - O worker **não** lê o `.env`, **não** usa o `docker.sock` e **não** tem o repo montado.
-- `_rejeitados/` e `_relatorio/` são escritos pelo host (usuário `tlandskron`), não pelo container.
+- `_rejeitados/` e `_relatorio/` são escritos pelo host (usuário `usuario`), não pelo container.
 
 ## 13. Fases (cada uma com prova)
 
@@ -281,7 +281,7 @@ config versionada em `ops/samba/`.
 | Base grande dilui a busca | uma base por concurso; não jogar "tudo" dentro |
 | Nome fora do padrão | não bloqueia; só piora a citação |
 | Samba como serviço novo | config versionada + ufw restrito + suíte cobrando; desligar é `systemctl stop smbd` |
-| Senha SMB esquecida | `sudo smbpasswd -a tlandskron` no host (documentado no card do serviço) |
+| Senha SMB esquecida | `sudo smbpasswd -a usuario` no host (documentado no card do serviço) |
 
 ## 15. Alternativas descartadas
 
@@ -317,7 +317,7 @@ caíram em 2025" — isso é consulta ao banco.
 | 2 | Samba instalado + `smb.conf` versionado + `smbd` habilitado | **feito** (2026-10-21) |
 | 3 | ufw 445 restrito à sub-rede + checks na suíte | **feito** (2026-10-21) |
 | 4 | `~/documents` no backup diário (`documents.tgz`) | **feito** (2026-10-21) |
-| 5 | Senha SMB do `tlandskron` | **feito** (2026-10-21) |
+| 5 | Senha SMB do `usuario` | **feito** (2026-10-21) |
 | 6 | Mapear `\\192.168.15.231\documentos` no Windows | **feito** (`T:`, SMB3, 2026-10-21) |
 | 7 | Fase 0 — spike de ingestão | **feito** (2026-10-21) — resultado em §18 |
 | 8 | Fase 2 — worker `rag-ingest` + manifest | **feito** (2026-10-21) — resultado em §19 |
@@ -437,7 +437,7 @@ Dois scripts, duas fronteiras:
 
 | Script | Onde roda | O que faz |
 |---|---|---|
-| `tools/rag_ingest.py` | **host** (tlandskron, só stdlib) | varre o share, dedupa por SHA-256, chama o uploader, grava manifest/log/relatório, move falha para `_rejeitados/` |
+| `tools/rag_ingest.py` | **host** (usuario, só stdlib) | varre o share, dedupa por SHA-256, chama o uploader, grava manifest/log/relatório, move falha para `_rejeitados/` |
 | `tools/owui_upload.py` | **container `open-webui`** | sessão JWT, cria/reusa a base, upload `process=true`, `file/add`, confere `knowledge_file` e vetores, **descarta** o arquivo se o Docling falhar |
 
 O share entra no container como **`/documents:ro`** (`docker-compose.yml`) — o worker não copia
@@ -490,14 +490,14 @@ O worker da Fase 2 passou a rodar sozinho, a cada 15 min. Não há lógica nova:
 | Peça | Arquivo | Instalado como |
 |---|---|---|
 | Wrapper | `ops/bin/rag_ingest.sh` | `/usr/local/bin/rag-ingest` |
-| Agendamento | `ops/cron/rag-ingest.cron` | `/etc/cron.d/rag-ingest` (`*/15 * * * * tlandskron`) |
+| Agendamento | `ops/cron/rag-ingest.cron` | `/etc/cron.d/rag-ingest` (`*/15 * * * * usuario`) |
 | Lógica | `tools/rag_ingest.py` (sem mudança de fluxo) | — |
 
 O wrapper existe por três motivos, e nenhum é cosmético:
 
-1. **roda como `tlandskron`**, não root: é o dono do share e do `~/rag-state`. Como root,
+1. **roda como `usuario`**, não root: é o dono do share e do `~/rag-state`. Como root,
    `_relatorio/` e `_rejeitados/` nasceriam de root dentro do share e o usuário não conseguiria
-   abrir/renomear. O wrapper reexecuta como `tlandskron` se for chamado como root.
+   abrir/renomear. O wrapper reexecuta como `usuario` se for chamado como root.
 2. **`flock -n`** em `~/rag-state/ingest.lock`: o lote inicial levou **9m45s**; um lote maior passa
    dos 15 min e a execução seguinte **não** pode atropelar — ela registra `skip` e sai.
 3. **log em `~/rag-state/cron.log`** (rotação em 5 MB): cron sem MTA não manda e-mail; o log é o
@@ -530,8 +530,8 @@ Estado da base após a prova: **17 documentos / 424 vetores** (o `.txt` novo con
 | Check | Por quê |
 |---|---|
 | `/usr/local/bin/rag-ingest` executável | arquivo ausente = cron sem runner |
-| `/etc/cron.d/rag-ingest` com `*/15` e usuário `tlandskron` | usuário errado = arquivos de root no share |
-| `HOME=/home/tlandskron` na entrada | o CLI do `docker` herda `$HOME` do cron |
+| `/etc/cron.d/rag-ingest` com `*/15` e usuário `usuario` | usuário errado = arquivos de root no share |
+| `HOME=/home/usuario` na entrada | o CLI do `docker` herda `$HOME` do cron |
 | relatório reescrito há **≤ 45 min** | prova pelo efeito; cron parado/host desligado = **WARN** (estado do ambiente, não regressão) |
 | `aviso_extracao()` por tipo de arquivo | PDF escaneado avisa; `.txt` curto **não** (era falso alarme de "OCR falhou" no gabarito digitado) |
 

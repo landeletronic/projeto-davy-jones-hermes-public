@@ -111,7 +111,7 @@ Efeito prático: **o dashboard não existia no Grafana** (e o healthcheck respon
 ninguém percebia). Correção (`ops/deploy/sync-to-host.ps1` agora força isso):
 
 ```bash
-chmod -R a+rX /home/tlandskron/hermes-architect/monitoring    # dirs 755, arquivos 644 (não toca nginx/certs)
+chmod -R a+rX /home/usuario/hermes-architect/monitoring    # dirs 755, arquivos 644 (não toca nginx/certs)
 ```
 
 ### 5.3 Senha do admin do Grafana (bug real, encontrado na 7)
@@ -175,7 +175,7 @@ systemctl is-active cron && systemctl is-enabled cron      # active / enabled
 # provar de ponta a ponta: agendar a cada minuto e ver disparar
 BEFORE=$(stat -c %Y ~/ci/last-run.json)
 sudo cp /etc/cron.d/hermes-ci /root/hermes-ci.orig
-printf '* * * * * tlandskron /usr/local/bin/hermes-ci --quiet >> /home/tlandskron/ci/cron.log 2>&1\n' | sudo tee /etc/cron.d/hermes-ci
+printf '* * * * * usuario /usr/local/bin/hermes-ci --quiet >> /home/usuario/ci/cron.log 2>&1\n' | sudo tee /etc/cron.d/hermes-ci
 # ... esperar ~1-2 min e conferir: ~/ci/cron.log + `CRON[...]` no /var/log/syslog
 sudo cp /root/hermes-ci.orig /etc/cron.d/hermes-ci         # restaurar o horário real
 ```

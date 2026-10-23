@@ -23,7 +23,7 @@ Exceção (atualização, não remoção): o **mesmo caminho** com conteúdo nov
 nova do mesmo documento — a nova sobe e a antiga sai da base (marcada `substituido` no
 manifest). O texto que você corrigiu não fica citável ao lado do corrigido.
 
-Uso (host, roda como tlandskron — o mesmo dono do share):
+Uso (host, roda como usuario — o mesmo dono do share):
 
   python3 tools/rag_ingest.py --dry-run     # mostra o que faria; não escreve nada
   python3 tools/rag_ingest.py               # ingere o que é novo (e substitui versões)
@@ -44,8 +44,8 @@ import sys
 import time
 from datetime import datetime, timezone
 
-DOCS = os.environ.get('RAG_DOCUMENTS', '/home/tlandskron/documents')
-STATE = os.environ.get('RAG_STATE', '/home/tlandskron/rag-state')
+DOCS = os.environ.get('RAG_DOCUMENTS', '/home/usuario/documents')
+STATE = os.environ.get('RAG_STATE', '/home/usuario/rag-state')
 CONTAINER = 'open-webui'
 ADMIN = os.environ.get('RAG_ADMIN_EMAIL', 'admin@example.com')
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -246,7 +246,7 @@ def preflight():
         raise SystemExit(
             f'o container {CONTAINER} não tem {DOCS} montado em /documents:ro\n'
             '  rode: powershell -File ops\\deploy\\sync-to-host.ps1\n'
-            '  e:    ssh davy-jones-hermes \'cd /home/tlandskron/hermes-architect && docker compose up -d open-webui\''
+            '  e:    ssh davy-jones-hermes \'cd /home/usuario/hermes-architect && docker compose up -d open-webui\''
         )
     if not os.path.exists(UPLOADER):
         raise SystemExit(f'uploader ausente: {UPLOADER}')
@@ -358,7 +358,7 @@ def relatorio(docs, rows, novos, repetidos, pendentes, falhas):
         'Apagar é decisão sua, nunca do processo:',
         '',
         '```',
-        'python3 /home/tlandskron/hermes-architect/tools/rag_ingest.py --remover <sha256>',
+        'python3 /home/usuario/hermes-architect/tools/rag_ingest.py --remover <sha256>',
         '```',
         '',
         'O SHA-256 de cada documento está em `~/rag-state/manifest.csv`.',
@@ -375,7 +375,7 @@ def relatorio(docs, rows, novos, repetidos, pendentes, falhas):
 # scraper nunca ler um arquivo pela metade.
 # --------------------------------------------------------------------------- #
 METRICS = os.environ.get(
-    'RAG_METRICS', '/home/tlandskron/hermes-architect/ci/textfile/hermes_rag.prom')
+    'RAG_METRICS', '/home/usuario/hermes-architect/ci/textfile/hermes_rag.prom')
 
 
 def documentos_na_base(rows):

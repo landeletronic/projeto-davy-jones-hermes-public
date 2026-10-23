@@ -17,8 +17,8 @@
 # =============================================================================
 set -uo pipefail
 
-CRT="${1:-${TLS_CRT:-/home/tlandskron/hermes-architect/nginx/certs/server.crt}}"
-TEXTFILE="${TLS_TEXTFILE:-/home/tlandskron/hermes-architect/ci/textfile}"
+CRT="${1:-${TLS_CRT:-/home/usuario/hermes-architect/nginx/certs/server.crt}}"
+TEXTFILE="${TLS_TEXTFILE:-/home/usuario/hermes-architect/ci/textfile}"
 
 if [ ! -f "$CRT" ]; then
   echo "tls_cert_metrics: certificado ausente: $CRT" >&2

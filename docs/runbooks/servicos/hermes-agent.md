@@ -23,7 +23,7 @@ A última linha **não** pode mostrar `/var/run/docker.sock` nem `~/.ssh` (ver A
 ## Reiniciar
 
 ```bash
-cd /home/tlandskron/hermes-architect && docker compose restart hermes
+cd /home/usuario/hermes-architect && docker compose restart hermes
 ```
 
 Mudou `hermes-data/config.yaml`? O caminho normal é `ops\deploy\sync-to-host.ps1` (instala em

@@ -22,7 +22,7 @@ docker exec ollama ollama ps                              # quem está na VRAM a
 ## Reiniciar
 
 ```bash
-cd /home/tlandskron/hermes-architect && docker compose restart ollama
+cd /home/usuario/hermes-architect && docker compose restart ollama
 ```
 
 ## Sintomas típicos

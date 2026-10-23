@@ -2,7 +2,7 @@
 # =============================================================================
 # backup_stack.sh — backup consistente do lab (roda NO HOST, via cron)
 #
-# Gera /home/tlandskron/backups/hermes-<UTC>.tar.gz contendo:
+# Gera /home/usuario/backups/hermes-<UTC>.tar.gz contendo:
 #   - docker-compose.yml renderizado (docker compose config)
 #   - .hermes/ (config, mem0.json, .env, plugins)
 #   - webui.db e grafana.db (cópias consistentes via sqlite3 .backup)
@@ -17,13 +17,13 @@
 # =============================================================================
 set -euo pipefail
 
-DEST=/home/tlandskron/backups
-COMPOSE_DIR=/home/tlandskron/hermes-architect
-HERMES_DIR=/home/tlandskron/.hermes
+DEST=/home/usuario/backups
+COMPOSE_DIR=/home/usuario/hermes-architect
+HERMES_DIR=/home/usuario/.hermes
 # Documentos do eixo de estudos (share SMB) e o estado do ingestão: ficam FORA
 # do repo, mas precisam entrar no backup — é a segunda cópia (a primeira é o PC).
-DOCS_DIR=${DOCS_DIR:-/home/tlandskron/documents}
-RAG_STATE=${RAG_STATE:-/home/tlandskron/rag-state}
+DOCS_DIR=${DOCS_DIR:-/home/usuario/documents}
+RAG_STATE=${RAG_STATE:-/home/usuario/rag-state}
 KEEP_DAYS=14
 KEEP_MONTHS=6
 TS=$(date -u +%Y%m%dT%H%M%SZ)

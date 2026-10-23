@@ -19,7 +19,7 @@ curl -s localhost:6333/collections/mem0_memories | python3 -m json.tool  # point
 ## Reiniciar
 
 ```bash
-cd /home/tlandskron/hermes-architect && docker compose restart qdrant
+cd /home/usuario/hermes-architect && docker compose restart qdrant
 ```
 
 ## Não subir / perdido

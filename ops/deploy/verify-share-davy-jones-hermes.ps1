@@ -10,7 +10,7 @@ $ErrorActionPreference = 'Stop'
 
 $Folder = 'C:\Users\usuario\Downloads\davy-jones-hermes'
 $Share  = 'davy-jones-hermes'
-$User   = 'B550M-AORUS-ELI\tlandskron'
+$User   = 'B550M-AORUS-ELI\usuario'
 
 $script:pass = 0; $script:fail = 0; $script:warn = 0
 function Check($desc, [bool]$ok) { if ($ok) { "  PASS  $desc"; $script:pass++ } else { "  FAIL  $desc"; $script:fail++ } }

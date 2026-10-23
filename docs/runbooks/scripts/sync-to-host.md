@@ -4,7 +4,7 @@
 |---|---|
 | Arquivo | `ops/deploy/sync-to-host.ps1` |
 | Roda em | **Windows**, à mão |
-| Transporte | espelha o repo para `davy-jones-hermes:/home/tlandskron/hermes-architect` |
+| Transporte | espelha o repo para `davy-jones-hermes:/home/usuario/hermes-architect` |
 | Termina com | CI (`hermes-ci --quiet`) |
 
 ## O que ele faz, em ordem
@@ -26,7 +26,7 @@ code sozinho, então sem isso uma instalação falha passa batido.
 
 - **não** aplica `docker compose`. Mudou compose/volume/bind-mount?
   ```bash
-  ssh davy-jones-hermes 'cd /home/tlandskron/hermes-architect && docker compose up -d <serviço>'
+  ssh davy-jones-hermes 'cd /home/usuario/hermes-architect && docker compose up -d <serviço>'
   ```
 - não apaga nada em `_legacy/` nem em `~/backups`.
 

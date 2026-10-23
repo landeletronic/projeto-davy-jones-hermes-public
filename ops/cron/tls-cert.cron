@@ -9,4 +9,4 @@
 SHELL=/bin/bash
 PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
-20 3 * * * tlandskron /usr/local/bin/tls-cert-metrics >> /home/tlandskron/backups/tls-cert.log 2>&1
+20 3 * * * usuario /usr/local/bin/tls-cert-metrics >> /home/usuario/backups/tls-cert.log 2>&1

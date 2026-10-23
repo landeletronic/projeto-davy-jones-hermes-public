@@ -37,8 +37,8 @@ import sys
 import tempfile
 from datetime import datetime
 
-DOCS = os.environ.get('RAG_DOCUMENTS', '/home/tlandskron/documents')
-STATE = os.environ.get('RAG_STATE', '/home/tlandskron/rag-state')
+DOCS = os.environ.get('RAG_DOCUMENTS', '/home/usuario/documents')
+STATE = os.environ.get('RAG_STATE', '/home/usuario/rag-state')
 DB = os.path.join(STATE, 'questoes.db')
 RELATORIO = '_relatorio/QUESTOES.md'
 # Documento citável no RAG (entra pelo worker, tipo `doc`, base Tiradentes BM).

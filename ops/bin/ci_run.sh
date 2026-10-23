@@ -17,9 +17,9 @@
 set -uo pipefail
 export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
-REPO=${HERMES_REPO:-/home/tlandskron/hermes-architect}
+REPO=${HERMES_REPO:-/home/usuario/hermes-architect}
 SUITE="$REPO/tests/verify_stack.sh"
-CI_DIR=/home/tlandskron/ci
+CI_DIR=/home/usuario/ci
 LOG_DIR="$CI_DIR/logs"
 TEXTFILE_DIR="$REPO/ci/textfile"
 KEEP_LOGS=30

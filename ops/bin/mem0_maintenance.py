@@ -34,7 +34,7 @@ COLL = os.environ.get('MEM0_COLLECTION', 'mem0_memories')
 DEDUP_SIM = float(os.environ.get('MEM0_DEDUP_SIM', '0.97'))
 MAX_PER_USER = int(os.environ.get('MEM0_MAX_PER_USER', '2000'))
 RETENTION_DAYS = int(os.environ.get('MEM0_RETENTION_DAYS', '0'))
-TEXTFILE = os.environ.get('MEM0_TEXTFILE', '/home/tlandskron/hermes-architect/ci/textfile')
+TEXTFILE = os.environ.get('MEM0_TEXTFILE', '/home/usuario/hermes-architect/ci/textfile')
 DRY = '--dry-run' in sys.argv
 
 

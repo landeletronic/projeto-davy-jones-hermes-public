@@ -12,7 +12,7 @@
 # =============================================================================
 param(
     [string]$Target = 'davy-jones-hermes',
-    [string]$RemoteDir = '/home/tlandskron/hermes-architect',
+    [string]$RemoteDir = '/home/usuario/hermes-architect',
     [switch]$NoCi
 )
 
@@ -51,8 +51,8 @@ if (Test-Path $envFile) {
 # divergiu em silêncio: 0.7 no repo x 0.3 em produção). Instala só quando muda e
 # reinicia o gateway para aplicar.
 $cfgPairs = @(
-    @{ Local = 'hermes-data\config.yaml'; Remote = '/home/tlandskron/.hermes/config.yaml' },
-    @{ Local = 'hermes-data\mem0.json';   Remote = '/home/tlandskron/.hermes/mem0.json' }
+    @{ Local = 'hermes-data\config.yaml'; Remote = '/home/usuario/.hermes/config.yaml' },
+    @{ Local = 'hermes-data\mem0.json';   Remote = '/home/usuario/.hermes/mem0.json' }
 )
 $cfgChanged = $false
 foreach ($p in $cfgPairs) {
@@ -123,7 +123,7 @@ ssh $Target "sudo install -m 755 -o root -g root '$RemoteDir/ops/bin/questoes.sh
 Assert-Ok 'instalação do banco de questões + cron'
 # Primeiro import (idempotente): cria ~/rag-state/questoes.db e publica as
 # estatísticas no share antes de o CI rodar — senão o primeiro CI veria banco vazio.
-ssh $Target "sudo -u tlandskron /usr/local/bin/questoes"
+ssh $Target "sudo -u usuario /usr/local/bin/questoes"
 Assert-Ok 'primeiro import do banco de questões'
 
 # TLS: validade do certificado autoassinado (nada renova por você) — script + cron

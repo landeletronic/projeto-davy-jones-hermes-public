@@ -9,7 +9,7 @@
 | Estado | `~/rag-state/manifest.csv`, `~/rag-state/ingest.log`, `~/rag-state/cron.log` |
 | Relatório | `~/documents/_relatorio/INGESTAO.md` (reescrito a cada execução) |
 | Métricas | `~/hermes-architect/ci/textfile/hermes_rag.prom` → Prometheus/Grafana (`hermes_rag_*`) |
-| Roda como | `tlandskron` (dono do share e do estado) |
+| Roda como | `usuario` (dono do share e do estado) |
 | Horários | **locais, com offset** (`2026-10-22T10:47:57-03:00`) — o host está em `America/Sao_Paulo` e o cron usa a hora local |
 
 ## O que faz
@@ -128,8 +128,8 @@ ssh davy-jones-hermes "docker exec prometheus wget -qO- 'http://127.0.0.1:9090/a
 | arquivo em `_rejeitados/` | PDF corrompido / Docling falhou | ler o `.motivo.txt`, corrigir o PDF e rodar `rag-ingest --retentar` |
 | `skip` repetido em `cron.log` | execução anterior travada | `ps aux \| grep rag_ingest`; se não houver processo, o lock é liberado sozinho (flock) |
 | `worker ausente em …/tools/rag_ingest.py` | sync não rodou | `powershell -File ops\deploy\sync-to-host.ps1` |
-| `não tem … montado em /documents:ro` | container antigo (compose mudou) | `ssh davy-jones-hermes 'cd /home/tlandskron/hermes-architect && docker compose up -d open-webui'` |
-| `_rejeitados/` ou `_relatorio/` com dono root | alguém rodou o worker como root | o wrapper já troca para `tlandskron`; corrija o passado com `sudo chown -R tlandskron:tlandskron ~/documents` |
+| `não tem … montado em /documents:ro` | container antigo (compose mudou) | `ssh davy-jones-hermes 'cd /home/usuario/hermes-architect && docker compose up -d open-webui'` |
+| `_rejeitados/` ou `_relatorio/` com dono root | alguém rodou o worker como root | o wrapper já troca para `usuario`; corrija o passado com `sudo chown -R usuario:usuario ~/documents` |
 
 ## Reinstalar / desligar
 

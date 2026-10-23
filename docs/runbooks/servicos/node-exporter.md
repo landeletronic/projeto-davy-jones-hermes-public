@@ -14,7 +14,7 @@ docker inspect -f '{{.State.Health.Status}}' node-exporter
 curl -s localhost:9100/metrics | head -c 200                       # se publicado; normalmente via prometheus
 docker exec prometheus wget -qO- 'http://node-exporter:9100/metrics' \
   | grep -E '^hermes_(backup|mem0|tls|ci)_' | head
-ls -l /home/tlandskron/hermes-architect/ci/textfile/
+ls -l /home/usuario/hermes-architect/ci/textfile/
 ```
 
 ## Como o textfile funciona

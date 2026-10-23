@@ -40,7 +40,7 @@ tools:
 
 **Aplicar:**
 ```bash
-ssh davy-jones-hermes "cd /home/tlandskron/hermes-architect && docker compose restart hermes"
+ssh davy-jones-hermes "cd /home/usuario/hermes-architect && docker compose restart hermes"
 # ou, se o arquivo estiver em ~/.hermes:
 # cp ~/.hermes/config.yaml ~/.hermes/config.yaml.bak-$(date +%Y%m%d-%H%M)
 ```

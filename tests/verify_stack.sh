@@ -13,7 +13,7 @@ set -u
 # A chave do gateway vive no .env do host (nunca no repo): é lida do ambiente do
 # container, que é a fonte efetiva no runtime.
 KEY=$(docker inspect -f '{{range .Config.Env}}{{println .}}{{end}}' hermes-agent 2>/dev/null | sed -n 's/^API_SERVER_KEY=//p' | head -1)
-HERMES_DIR="/home/tlandskron/.hermes"
+HERMES_DIR="/home/usuario/.hermes"
 
 PASS=0
 FAIL=0
@@ -60,7 +60,7 @@ if has "$col" "mem0_memories"; then ok "coleção mem0_memories existe"; else ba
 # do volume antes de tocar em produção. Aqui garantimos que a versão que está no
 # ar é a mesma que o compose manda — drift silencioso é como um "upgrade" volta atrás.
 qrun=$(curl -s --max-time 5 http://localhost:6333/ | python3 -c 'import sys,json;print(json.load(sys.stdin).get("version",""))' 2>/dev/null)
-qpin=$(grep -oE 'qdrant/qdrant:v[0-9.]+' /home/tlandskron/hermes-architect/docker-compose.yml | head -1 | sed 's|.*:v||')
+qpin=$(grep -oE 'qdrant/qdrant:v[0-9.]+' /home/usuario/hermes-architect/docker-compose.yml | head -1 | sed 's|.*:v||')
 if [ -n "$qrun" ] && [ "$qrun" = "$qpin" ]; then
   ok "Qdrant no ar = compose (v$qrun)"
 else
@@ -185,7 +185,7 @@ fi
 # ~/.hermes). Cópia que ninguém aplica apodrece em silêncio: em 2026-10-20 o repo
 # estava em temperature 0.7 e a produção em 0.3 — um rebuild pelo repo desfaria
 # o fix #8 sem aviso. Aqui a divergência vira FAIL, não surpresa.
-REPO_CFG=/home/tlandskron/hermes-architect/hermes-data/config.yaml
+REPO_CFG=/home/usuario/hermes-architect/hermes-data/config.yaml
 if [ -f "$REPO_CFG" ]; then
   if diff -q <(sed -e '$a\' "$REPO_CFG") <(sed -e '$a\' "$HERMES_DIR/config.yaml") >/dev/null 2>&1; then
     ok "config do Hermes: repo == produção (sem deriva)"
@@ -405,11 +405,11 @@ rcode=$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 http://localhost/)
 if [ "$rcode" = "301" ]; then ok "http :80 redireciona para HTTPS"; else bad "http :80 = $rcode (esperado 301)"; fi
 owport=$(docker port open-webui 8080 2>/dev/null)
 if has "$owport" "127.0.0.1:3000"; then ok "OWUI 3000 só no loopback"; else bad "OWUI exposto fora do loopback ($owport)"; fi
-if [ -f /home/tlandskron/hermes-architect/nginx/certs/server.crt ]; then ok "certificado TLS presente"; else bad "certificado TLS ausente"; fi
+if [ -f /home/usuario/hermes-architect/nginx/certs/server.crt ]; then ok "certificado TLS presente"; else bad "certificado TLS ausente"; fi
 
 # Renovação (#10): o cert é autoassinado — nada renova sozinho. Expirado = FAIL
 # (HTTPS quebrado); <30 dias = WARN (estado do ambiente, igual às regras de alerta).
-CRT=/home/tlandskron/hermes-architect/nginx/certs/server.crt
+CRT=/home/usuario/hermes-architect/nginx/certs/server.crt
 if [ -f "$CRT" ]; then
   if openssl x509 -in "$CRT" -noout -checkend 0 >/dev/null 2>&1; then
     if openssl x509 -in "$CRT" -noout -checkend $((30 * 86400)) >/dev/null 2>&1; then
@@ -447,7 +447,7 @@ if has "$tlsm" '"value"'; then ok "métrica de validade do TLS exposta (hermes_t
 if [ -x /usr/local/bin/tls-cert-metrics ] && [ -f /etc/cron.d/tls-cert ]; then ok "métrica do TLS instalada + cron diário"; else bad "tls-cert-metrics e/ou cron /etc/cron.d/tls-cert ausentes"; fi
 # Renovação provada em diretório isolado (nunca no cert de produção).
 tdir=$(mktemp -d /var/tmp/tlsrenew.XXXXXX)
-mkcert=/home/tlandskron/hermes-architect/tools/make_tls_cert.sh
+mkcert=/home/usuario/hermes-architect/tools/make_tls_cert.sh
 if bash "$mkcert" --out "$tdir" --days 2 --force >/dev/null 2>&1 \
    && openssl x509 -in "$tdir/server.crt" -noout -checkend 86400 >/dev/null 2>&1 \
    && ! openssl x509 -in "$tdir/server.crt" -noout -checkend $((3 * 86400)) >/dev/null 2>&1; then
@@ -479,12 +479,12 @@ if [ "${tg:-0}" -ge 4 ]; then ok "prometheus com $tg alvos UP"; else bad "promet
 gh=$(curl -sk --max-time 10 https://localhost:3001/api/health 2>/dev/null)
 if has "$gh" '"database"' && has "$gh" 'ok'; then ok "grafana health ok via TLS :3001"; else bad "grafana health via TLS :3001 falhou"; fi
 if has "$gh" '"version"'; then ok "grafana respondendo"; else bad "grafana sem resposta"; fi
-if [ -f /home/tlandskron/hermes-architect/monitoring/grafana/dashboards/hermes-lab.json ]; then ok "dashboard hermes-lab provisionado"; else bad "dashboard hermes-lab ausente"; fi
+if [ -f /home/usuario/hermes-architect/monitoring/grafana/dashboards/hermes-lab.json ]; then ok "dashboard hermes-lab provisionado"; else bad "dashboard hermes-lab ausente"; fi
 gp=$(docker port grafana 2>/dev/null)
 if [ -z "$gp" ]; then ok "grafana não publica porta (só via nginx)"; else bad "grafana publicando porta: $gp"; fi
 # Login: o Grafana só aplica GF_SECURITY_ADMIN_PASSWORD no 1º boot do volume.
 # Se o valor do .env divergir do banco, o escritório fica sem acesso — testa de verdade.
-gadm=$(grep -h '^GRAFANA_ADMIN_PASSWORD=' /home/tlandskron/hermes-architect/.env 2>/dev/null | cut -d= -f2 | tr -d '\r')
+gadm=$(grep -h '^GRAFANA_ADMIN_PASSWORD=' /home/usuario/hermes-architect/.env 2>/dev/null | cut -d= -f2 | tr -d '\r')
 gip=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' grafana 2>/dev/null)
 gcode=$(curl -s -o /tmp/_g.json -w '%{http_code}' --max-time 10 -u "admin:$gadm" "http://$gip:3000/api/user" 2>/dev/null)
 # (só UMA tentativa por execução: login errado repetido aciona o brute-force do Grafana)
@@ -493,12 +493,12 @@ gdash=$(curl -s --max-time 10 -u "admin:$gadm" "http://$gip:3000/api/dashboards/
 if has "$gdash" 'hermes_ci_last_run_success'; then ok "dashboard hermes-lab carregado no Grafana"; else bad "dashboard não carregado no Grafana (permissão de leitura em monitoring/?)"; fi
 # o processo do Grafana (uid 472) precisa de o+rx no diretório montado, senão o
 # file provider falha com "permission denied" e o dashboard nunca aparece.
-mperm=$(stat -c '%a' /home/tlandskron/hermes-architect/monitoring/grafana/dashboards 2>/dev/null)
+mperm=$(stat -c '%a' /home/usuario/hermes-architect/monitoring/grafana/dashboards 2>/dev/null)
 case "$mperm" in
   *[57]) ok "dashboards legíveis por containers (modo $mperm)" ;;
   *)      bad "monitoring/grafana/dashboards sem o+rx (modo ${mperm:-?}) — Grafana não lê" ;;
 esac
-if [ -f /home/tlandskron/hermes-architect/monitoring/prometheus.yml ]; then ok "prometheus.yml presente"; else bad "prometheus.yml ausente"; fi
+if [ -f /home/usuario/hermes-architect/monitoring/prometheus.yml ]; then ok "prometheus.yml presente"; else bad "prometheus.yml ausente"; fi
 
 # Alertas: regras carregadas, métrica do backup publicada e nada disparado.
 # Disparo vira WARN (não FAIL): é estado do ambiente, não regressão do código —
@@ -515,7 +515,7 @@ try:
 except Exception:
     print("err")
 ' 2>/dev/null)
-rulefile=/home/tlandskron/hermes-architect/monitoring/alert-rules.yml
+rulefile=/home/usuario/hermes-architect/monitoring/alert-rules.yml
 nfile=$(grep -c -- '- alert:' "$rulefile" 2>/dev/null || echo "?")
 if [ "${nrules:-err}" = "${nfile:-?}" ] && has "$rules" 'LabMem0MaintenanceLate'; then
   ok "todas as ${nfile} regras do arquivo carregadas (inclui a do mem0)"
@@ -532,7 +532,7 @@ if [ "${nf:-0}" = "0" ]; then ok "nenhum alerta disparado"; else warn "${nf} ale
 # de avisar. Em 2026-10-22 a monitoração ficou 4 h fora (host desligado e o
 # prometheus não voltou) e ninguém soube — o script morria no stderr do ssh antes
 # de chegar ao aviso (EAP=Stop + NativeCommandError) e no fim só logava.
-watch=/home/tlandskron/hermes-architect/ops/windows/watch-alerts.ps1
+watch=/home/usuario/hermes-architect/ops/windows/watch-alerts.ps1
 if [ -f "$watch" ] && grep -q 'PrometheusSemResposta' "$watch" && grep -q "ErrorActionPreference = 'Continue'" "$watch"; then
   ok "watch-alerts avisa quando o Prometheus não responde"
 else
@@ -541,7 +541,7 @@ fi
 # A tarefa do Windows chama wscript + run-hidden.vbs (zero janela) e o toast usa
 # AUMID próprio ("Hermes Lab"): powershell.exe direto numa tarefa interativa abria
 # um console a cada 30 min e roubava o foco de quem estava digitando (2026-10-22).
-hidden=/home/tlandskron/hermes-architect/ops/windows/run-hidden.vbs
+hidden=/home/usuario/hermes-architect/ops/windows/run-hidden.vbs
 if [ -f "$hidden" ] && grep -q 'sh.Run cmd, 0, False' "$hidden" \
    && grep -q 'Hermes\.Lab\.Alerts' "$watch" && ! grep -q '1AC14E77' "$watch"; then
   ok "watcher sem janela (run-hidden.vbs) e toast com AUMID 'Hermes Lab'"
@@ -570,13 +570,13 @@ if grep -q 'hermes-ci' /etc/cron.d/hermes-ci 2>/dev/null; then ok "agendamento d
 # --- fatos estáticos: se regredirem, é FALHA ---
 if [ -x /usr/local/bin/hermes-ci ]; then ok "runner hermes-ci instalado"; else bad "hermes-ci ausente"; fi
 if [ -f /etc/cron.d/hermes-ci ]; then ok "cron do CI presente"; else bad "cron do CI ausente"; fi
-if grep -q 'collector.textfile.directory' /home/tlandskron/hermes-architect/docker-compose.yml 2>/dev/null; then ok "node-exporter com textfile collector"; else bad "node-exporter sem textfile collector"; fi
-if grep -q 'hermes_ci_last_run_success' /home/tlandskron/hermes-architect/monitoring/grafana/dashboards/hermes-lab.json 2>/dev/null; then ok "painel do CI no dashboard"; else bad "painel do CI ausente"; fi
+if grep -q 'collector.textfile.directory' /home/usuario/hermes-architect/docker-compose.yml 2>/dev/null; then ok "node-exporter com textfile collector"; else bad "node-exporter sem textfile collector"; fi
+if grep -q 'hermes_ci_last_run_success' /home/usuario/hermes-architect/monitoring/grafana/dashboards/hermes-lab.json 2>/dev/null; then ok "painel do CI no dashboard"; else bad "painel do CI ausente"; fi
 
 # --- estado do CI: AVISO, nunca FALHA ---
 # (se fosse FAIL, a suíte ficaria travada em vermelho: todo run verde reportaria
 #  o vermelho do run anterior. O CI se observa pelo painel "Oráculo" do Grafana.)
-cijson=/home/tlandskron/ci/last-run.json
+cijson=/home/usuario/ci/last-run.json
 if [ -f "$cijson" ] && python3 -c "import json,sys;sys.exit(0 if json.load(open('$cijson')).get('success') else 1)" 2>/dev/null; then
   ok "último CI = VERDE"
 else
@@ -588,7 +588,7 @@ if [ -f "$cijson" ]; then
 else
   warn "sem ~/ci/last-run.json (o CI nunca rodou?)"
 fi
-tf=/home/tlandskron/hermes-architect/ci/textfile/hermes_ci.prom
+tf=/home/usuario/hermes-architect/ci/textfile/hermes_ci.prom
 if grep -q '^hermes_ci_last_run_success 1' "$tf" 2>/dev/null; then ok "métrica do CI publicada (textfile)"; else warn "métrica do CI ausente no textfile"; fi
 ciprom=$(docker exec prometheus wget -qO- 'http://127.0.0.1:9090/api/v1/query?query=hermes_ci_last_run_success' 2>/dev/null)
 # o Prometheus relê a cada scrape: comparar o VALOR recém-publicado seria raçudo.
@@ -644,9 +644,9 @@ smb_ac=$(systemctl is-active smbd 2>/dev/null)
 if [ "$smb_en" = "enabled" ] && [ "$smb_ac" = "active" ]; then ok "smbd ativo e habilitado"; else bad "smbd ($smb_en/$smb_ac)"; fi
 TP=$(command -v testparm 2>/dev/null)
 share_path=$([ -n "$TP" ] && sudo -n "$TP" -s --section-name=documentos --parameter-name=path 2>/dev/null | tr -d ' \t')
-if [ "$share_path" = "/home/tlandskron/documents" ]; then ok "share 'documentos' -> ~/documents"; else bad "share 'documentos' aponta para '$share_path'"; fi
+if [ "$share_path" = "/home/usuario/documents" ]; then ok "share 'documentos' -> ~/documents"; else bad "share 'documentos' aponta para '$share_path'"; fi
 share_user=$([ -n "$TP" ] && sudo -n "$TP" -s --section-name=documentos --parameter-name='valid users' 2>/dev/null)
-if has "$share_user" "tlandskron"; then ok "share restrito a usuário nominal (sem guest)"; else bad "share sem valid users=tlandskron ($share_user)"; fi
+if has "$share_user" "usuario"; then ok "share restrito a usuário nominal (sem guest)"; else bad "share sem valid users=usuario ($share_user)"; fi
 smb_allow=$([ -n "$TP" ] && sudo -n "$TP" -s --parameter-name='hosts allow' 2>/dev/null)
 if has "$smb_allow" "192.168.15.0/24" && ! has "$smb_allow" "0.0.0.0/0"; then
   ok "samba só aceita a sub-rede do lab (hosts allow)"
@@ -656,10 +656,10 @@ fi
 # 445 é INPUT de verdade: tem de estar liberada PARA A SUB-REDE, nunca para todos.
 if printf '%s' "$ufws" | grep -qE '^445/tcp +ALLOW +192\.168\.15\.0/24'; then ok "ufw libera :445 só da sub-rede"; else bad "ufw não libera :445 da sub-rede"; fi
 if printf '%s' "$ufws" | grep -qE '^445/tcp +ALLOW +Anywhere'; then bad "ufw libera :445 para Anywhere (SMB exposto a qualquer origem)"; else ok "ufw não expõe :445 para Anywhere"; fi
-if [ -d /home/tlandskron/documents/concurso ] && [ -w /home/tlandskron/documents ]; then
+if [ -d /home/usuario/documents/concurso ] && [ -w /home/usuario/documents ]; then
   ok "árvore de documentos existe e é gravável"
 else
-  bad "árvore /home/tlandskron/documents ausente ou sem escrita"
+  bad "árvore /home/usuario/documents ausente ou sem escrita"
 fi
 
 # ---------------------------------------------------------------------------
@@ -669,25 +669,25 @@ section "RAG — worker de ingestão do share (eixo de estudos, Fase 2)"
 # registra em ~/rag-state/manifest.csv. Invariantes: nada de cópia de arquivo,
 # o container NÃO escreve no share, e o modo --dry-run é somente leitura.
 owui_docs=$(docker inspect -f '{{range .Mounts}}{{if eq .Destination "/documents"}}{{.Source}}|{{.RW}}{{end}}{{end}}' open-webui 2>/dev/null)
-if [ "$owui_docs" = "/home/tlandskron/documents|false" ]; then
+if [ "$owui_docs" = "/home/usuario/documents|false" ]; then
   ok "share montado no OWUI em /documents somente leitura"
 else
   bad "mount /documents:ro ausente ou gravável ($owui_docs)"
 fi
 for f in tools/rag_ingest.py tools/owui_upload.py tools/rag_complemento.py; do
-  if [ -f "/home/tlandskron/hermes-architect/$f" ]; then ok "worker: $f instalado"; else bad "worker: $f ausente no host"; fi
+  if [ -f "/home/usuario/hermes-architect/$f" ]; then ok "worker: $f instalado"; else bad "worker: $f ausente no host"; fi
 done
 miss=""
 for f in rag_ingest.py owui_upload.py rag_complemento.py; do
-  grep -qF "$f" /home/tlandskron/hermes-architect/docs/runbooks/scripts/tools.md 2>/dev/null || miss="$miss $f"
+  grep -qF "$f" /home/usuario/hermes-architect/docs/runbooks/scripts/tools.md 2>/dev/null || miss="$miss $f"
 done
 if [ -z "$miss" ]; then ok "worker documentado em docs/runbooks/scripts/tools.md"; else bad "script sem linha em tools.md:$miss"; fi
 # --dry-run é LEITURA: sai 0 e não mexe no manifest (o log também não é escrito).
-man=/home/tlandskron/rag-state/manifest.csv
+man=/home/usuario/rag-state/manifest.csv
 antes=""
 [ -f "$man" ] && antes=$(stat -c %Y%s "$man" 2>/dev/null)
 dry_out=$(mktemp /var/tmp/rag-dry.XXXXXX)
-if python3 /home/tlandskron/hermes-architect/tools/rag_ingest.py --dry-run >"$dry_out" 2>&1; then
+if python3 /home/usuario/hermes-architect/tools/rag_ingest.py --dry-run >"$dry_out" 2>&1; then
   ok "rag-ingest --dry-run roda (somente leitura)"
 else
   bad "rag-ingest --dry-run falhou: $(tail -2 "$dry_out" 2>/dev/null | tr '\n' ' ')"
@@ -703,7 +703,7 @@ if [ "$antes" = "$depois" ]; then ok "dry-run não toca no manifest"; else bad "
 orfas=$(python3 - "$man" <<'PY' 2>/dev/null
 import csv, os, sys
 caminho = sys.argv[1]
-docs = '/home/tlandskron/documents'
+docs = '/home/usuario/documents'
 if not os.path.exists(caminho):
     print('sem-manifest')
     raise SystemExit
@@ -737,7 +737,7 @@ while IFS= read -r arq; do
   csha=$(sha256sum "$arq" 2>/dev/null | awk '{print $1}')
   [ -n "$csha" ] || continue
   grep -q "^$csha,.*,ok$" "$man" 2>/dev/null || semcomp="$semcomp $(basename "$arq")"
-done < <(find /home/tlandskron/documents -name 'complemento-*.md' -not -path '*/_*' 2>/dev/null | sort)
+done < <(find /home/usuario/documents -name 'complemento-*.md' -not -path '*/_*' 2>/dev/null | sort)
 if [ -z "$semcomp" ]; then
   ok "complementos de tabela: todo .md do share está na base"
 else
@@ -778,7 +778,7 @@ esac
 # heurística do aviso de extração curta: PDF escaneado avisa, .txt curto não
 # (o gabarito de 2022 digitado tem 190 chars em 239 bytes — é o arquivo inteiro,
 # avisar ali era falso alarme de "OCR falhou").
-if python3 -c 'import sys; sys.path.insert(0, "/home/tlandskron/hermes-architect/tools"); import rag_ingest as r; assert r.aviso_extracao(".txt", 190, 239) == ""; assert r.aviso_extracao(".pdf", 190, 500000) != ""; assert r.aviso_extracao(".pdf", 5000, 500000) == ""' 2>/dev/null; then
+if python3 -c 'import sys; sys.path.insert(0, "/home/usuario/hermes-architect/tools"); import rag_ingest as r; assert r.aviso_extracao(".txt", 190, 239) == ""; assert r.aviso_extracao(".pdf", 190, 500000) != ""; assert r.aviso_extracao(".pdf", 5000, 500000) == ""' 2>/dev/null; then
   ok "aviso de extração curta: PDF escaneado avisa, .txt curto não"
 else
   bad "heurística do aviso de extração curta mudou (falso alarme em .txt curto)"
@@ -792,7 +792,7 @@ mkdir -p "$sb/docs/concurso/tiradentes-bm/2024/prova_gabarito" "$sb/state"
 printf '1A\n2B\n' > "$sb/docs/concurso/tiradentes-bm/2024/prova_gabarito/gabarito-2024.txt"
 printf 'sha256,bytes,origem,tipo,ano,knowledge_id,file_id,ingerido_em,duracao_s,estado\n' > "$sb/state/manifest.csv"
 printf 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa,6,concurso/tiradentes-bm/2024/prova_gabarito/gabarito-2024.txt,gabarito,2024,kb,file,2026-01-01T00:00:00Z,0.5,ok\n' >> "$sb/state/manifest.csv"
-sub_out=$(python3 /home/tlandskron/hermes-architect/tools/rag_ingest.py --dry-run --documents "$sb/docs" --state "$sb/state" --min-idade 0 2>&1)
+sub_out=$(python3 /home/usuario/hermes-architect/tools/rag_ingest.py --dry-run --documents "$sb/docs" --state "$sb/state" --min-idade 0 2>&1)
 if printf '%s' "$sub_out" | grep -q 'substituiria'; then
   ok "conteúdo novo no mesmo caminho substitui a versão antiga"
 else
@@ -800,7 +800,7 @@ else
 fi
 sha_now=$(sha256sum "$sb/docs/concurso/tiradentes-bm/2024/prova_gabarito/gabarito-2024.txt" | awk '{print $1}')
 sed -i "s/^aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa,/$sha_now,/" "$sb/state/manifest.csv"
-rep_out=$(python3 /home/tlandskron/hermes-architect/tools/rag_ingest.py --dry-run --documents "$sb/docs" --state "$sb/state" --min-idade 0 2>&1)
+rep_out=$(python3 /home/usuario/hermes-architect/tools/rag_ingest.py --dry-run --documents "$sb/docs" --state "$sb/state" --min-idade 0 2>&1)
 if printf '%s' "$rep_out" | grep -q 'já ingerido' && ! printf '%s' "$rep_out" | grep -q 'substituiria'; then
   ok "mesmo conteúdo não substitui nada (é o mesmo documento)"
 else
@@ -810,7 +810,7 @@ fi
 # --remover só aceitava `ok` e recusava justamente a linha que se quer limpar
 sed -i "s/^$sha_now,/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa,/" "$sb/state/manifest.csv"
 sed -i 's/,ok$/,substituido/' "$sb/state/manifest.csv"
-rm_out=$(python3 /home/tlandskron/hermes-architect/tools/rag_ingest.py --remover aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa --dry-run --documents "$sb/docs" --state "$sb/state" 2>&1)
+rm_out=$(python3 /home/usuario/hermes-architect/tools/rag_ingest.py --remover aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa --dry-run --documents "$sb/docs" --state "$sb/state" 2>&1)
 if printf '%s' "$rm_out" | grep -q 'removeria'; then
   ok "versão antiga (substituido) pode ser removida com --remover"
 else
@@ -833,23 +833,23 @@ fi
 # ---------------------------------------------------------------------------
 section "RAG — worker agendado (eixo de estudos, Fase 3)"
 # Fase 3 = o mesmo worker, agora no cron a cada 15 min. O invariante que importa:
-# roda como tlandskron (como root, _rejeitados/ e _relatorio/ nasceriam de root
+# roda como usuario (como root, _rejeitados/ e _relatorio/ nasceriam de root
 # dentro do share) e o agendamento existe DE VERDADE (arquivo + efeito recente).
 if [ -x /usr/local/bin/rag-ingest ]; then ok "rag-ingest instalado em /usr/local/bin"; else bad "rag-ingest ausente (rode o sync)"; fi
 if [ -f /etc/cron.d/rag-ingest ]; then ok "entrada /etc/cron.d/rag-ingest instalada"; else bad "cron do worker ausente"; fi
-if grep -qE '^\*/15 \* \* \* \* tlandskron /usr/local/bin/rag-ingest' /etc/cron.d/rag-ingest 2>/dev/null; then
-  ok "worker agendado a cada 15 min como tlandskron"
+if grep -qE '^\*/15 \* \* \* \* usuario /usr/local/bin/rag-ingest' /etc/cron.d/rag-ingest 2>/dev/null; then
+  ok "worker agendado a cada 15 min como usuario"
 else
   bad "linha do cron ausente/errada em /etc/cron.d/rag-ingest (usuário errado = arquivos de root no share)"
 fi
-if has "$(grep -E '^HOME=' /etc/cron.d/rag-ingest 2>/dev/null)" "HOME=/home/tlandskron"; then
+if has "$(grep -E '^HOME=' /etc/cron.d/rag-ingest 2>/dev/null)" "HOME=/home/usuario"; then
   ok "cron com HOME do dono do share"
 else
-  warn "cron sem HOME=/home/tlandskron (o docker pode reclamar)"
+  warn "cron sem HOME=/home/usuario (o docker pode reclamar)"
 fi
 # Prova pelo EFEITO, não pelo arquivo: o relatório é reescrito a cada execução
 # real. Mais de 45 min = cron parado ou host desligado (estado do ambiente → WARN).
-rel=/home/tlandskron/documents/_relatorio/INGESTAO.md
+rel=/home/usuario/documents/_relatorio/INGESTAO.md
 if [ -f "$rel" ]; then
   idade=$(( ( $(date +%s) - $(stat -c %Y "$rel") ) / 60 ))
   if [ "$idade" -le 45 ]; then
@@ -873,7 +873,7 @@ section "RAG — operação e métricas (eixo de estudos, Fase 4)"
 # Fase 4: o próprio worker publica o estado no textfile do node-exporter
 # (hermes_rag_*). Sem métrica, "documento pendente" só apareceria quando alguém
 # abrisse o Explorer; o alerta de 24 h é o que fecha o ciclo.
-ragtf=/home/tlandskron/hermes-architect/ci/textfile/hermes_rag.prom
+ragtf=/home/usuario/hermes-architect/ci/textfile/hermes_rag.prom
 miss=""
 for m in hermes_rag_documentos_total hermes_rag_falhas_total hermes_rag_pendentes_total \
          hermes_rag_pendente_mais_antigo_segundos hermes_rag_ultima_execucao_timestamp_seconds \
@@ -925,8 +925,8 @@ section "RAG — banco de questões (eixo de estudos, Fase 5)"
 # e o .md de estatísticas publicado é o que o worker ingere (vira citação).
 if [ -x /usr/local/bin/questoes ]; then ok "questoes instalado em /usr/local/bin"; else bad "questoes ausente (rode o sync)"; fi
 if [ -f /etc/cron.d/questoes ]; then ok "entrada /etc/cron.d/questoes instalada"; else bad "cron do banco de questões ausente"; fi
-if grep -qE '^5,35 \* \* \* \* tlandskron /usr/local/bin/questoes' /etc/cron.d/questoes 2>/dev/null; then
-  ok "banco de questões agendado a cada 30 min como tlandskron"
+if grep -qE '^5,35 \* \* \* \* usuario /usr/local/bin/questoes' /etc/cron.d/questoes 2>/dev/null; then
+  ok "banco de questões agendado a cada 30 min como usuario"
 else
   bad "linha do cron ausente/errada em /etc/cron.d/questoes (usuário errado = arquivo de root no share)"
 fi
@@ -935,7 +935,7 @@ if command -v tesseract >/dev/null 2>&1 && tesseract --list-langs 2>/dev/null | 
 else
   bad "tesseract/idioma por ausente — gabaritos em imagem (2023/2025) não são lidos"
 fi
-qdb=/home/tlandskron/rag-state/questoes.db
+qdb=/home/usuario/rag-state/questoes.db
 if [ -f "$qdb" ]; then
   ok "banco de questões existe (~/rag-state/questoes.db, entra no backup)"
 else
@@ -985,14 +985,14 @@ else
   bad "OCR dos gabaritos em imagem mudou (2023 deveria ser ocr-grade, 2025 ocr-tabela)"
 fi
 qout=$(mktemp /var/tmp/quest-conf.XXXXXX)
-if python3 /home/tlandskron/hermes-architect/tools/questoes.py --db "$qdb" conferir >"$qout" 2>&1; then
+if python3 /home/usuario/hermes-architect/tools/questoes.py --db "$qdb" conferir >"$qout" 2>&1; then
   ok "questoes conferir: 50/50 em todos os anos com prova e gabarito"
 else
   bad "questoes conferir falhou: $(tail -2 "$qout" 2>/dev/null | tr '\n' ' ')"
 fi
 rm -f "$qout"
 # Relatório lido no Explorer: fresco = cron rodando (estado do ambiente → WARN).
-qrel=/home/tlandskron/documents/_relatorio/QUESTOES.md
+qrel=/home/usuario/documents/_relatorio/QUESTOES.md
 if [ -f "$qrel" ]; then
   qidade=$(( ( $(date +%s) - $(stat -c %Y "$qrel") ) / 60 ))
   if [ "$qidade" -le 45 ]; then
@@ -1005,10 +1005,10 @@ else
 fi
 # O documento gerado precisa estar NA BASE (é o que deixa o chat responder
 # "quantas de matemática caíram em 2025" com citação).
-qest=/home/tlandskron/documents/referencias/estatisticas-questoes.md
+qest=/home/usuario/documents/referencias/estatisticas-questoes.md
 if [ -f "$qest" ]; then
   qsha=$(sha256sum "$qest" | awk '{print $1}')
-  qman=/home/tlandskron/rag-state/manifest.csv
+  qman=/home/usuario/rag-state/manifest.csv
   if grep -q "^$qsha,.*referencias/estatisticas-questoes.md,.*,ok$" "$qman" 2>/dev/null; then
     ok "estatísticas das questões publicadas e ingeridas (citáveis no chat)"
   elif grep -qF 'referencias/estatisticas-questoes.md' "$qman" 2>/dev/null; then
@@ -1020,8 +1020,8 @@ else
   bad "referencias/estatisticas-questoes.md ausente (rode: questoes estatisticas --publicar)"
 fi
 miss=""
-grep -qF 'questoes.py' /home/tlandskron/hermes-architect/docs/runbooks/scripts/tools.md 2>/dev/null || miss="$miss tools.md"
-[ -f /home/tlandskron/hermes-architect/docs/runbooks/scripts/questoes.md ] || miss="$miss card"
+grep -qF 'questoes.py' /home/usuario/hermes-architect/docs/runbooks/scripts/tools.md 2>/dev/null || miss="$miss tools.md"
+[ -f /home/usuario/hermes-architect/docs/runbooks/scripts/questoes.md ] || miss="$miss card"
 if [ -z "$miss" ]; then ok "banco de questões documentado (tools.md + card do script)"; else bad "documentação do banco de questões faltando:$miss"; fi
 # Regressão em sandbox (nada toca no share): 50/50 passa; incompleto é `revisar`
 # e falha. É o "não inventa" — o importador nunca completa questão faltando.
@@ -1036,14 +1036,14 @@ for n in 1 2 3; do
   printf 'Questão %s. Enunciado da questão %s.\n   (A) a\n   (B) b\n   (C) c\n   (D) d\n   (E) e\n\n' "$n" "$n"
 done > "$qsb/ruim/concurso/tiradentes-bm/2031/prova_gabarito/prova-2031.txt"
 for n in 1 2 3; do printf '%s A\n' "$n"; done > "$qsb/ruim/concurso/tiradentes-bm/2031/prova_gabarito/gabarito-2031.txt"
-if python3 /home/tlandskron/hermes-architect/tools/questoes.py --db "$qsb/ok.db" --documents "$qsb/ok" importar --quiet >/dev/null 2>&1 \
-   && python3 /home/tlandskron/hermes-architect/tools/questoes.py --db "$qsb/ok.db" conferir >/dev/null 2>&1; then
+if python3 /home/usuario/hermes-architect/tools/questoes.py --db "$qsb/ok.db" --documents "$qsb/ok" importar --quiet >/dev/null 2>&1 \
+   && python3 /home/usuario/hermes-architect/tools/questoes.py --db "$qsb/ok.db" conferir >/dev/null 2>&1; then
   ok "sandbox: prova+gabarito completos importam 50/50 e conferem"
 else
   bad "sandbox: import de 50/50 não passou (parser quebrado)"
 fi
-if python3 /home/tlandskron/hermes-architect/tools/questoes.py --db "$qsb/ruim.db" --documents "$qsb/ruim" importar --quiet >/dev/null 2>&1 \
-   && ! python3 /home/tlandskron/hermes-architect/tools/questoes.py --db "$qsb/ruim.db" conferir >/dev/null 2>&1; then
+if python3 /home/usuario/hermes-architect/tools/questoes.py --db "$qsb/ruim.db" --documents "$qsb/ruim" importar --quiet >/dev/null 2>&1 \
+   && ! python3 /home/usuario/hermes-architect/tools/questoes.py --db "$qsb/ruim.db" conferir >/dev/null 2>&1; then
   ok "sandbox: ano incompleto fica revisar e conferir falha (não inventa)"
 else
   bad "sandbox: ano incompleto passou como ok (importador inventando questão)"
@@ -1054,7 +1054,7 @@ rm -rf "$qsb"
 section "FASE 6.4 — Backup e pinagem"
 if [ -x /usr/local/bin/hermes-backup ]; then ok "script hermes-backup instalado"; else bad "hermes-backup ausente"; fi
 if [ -f /etc/cron.d/hermes-backup ]; then ok "cron de backup diário"; else bad "cron de backup ausente"; fi
-latest=$(ls -1t /home/tlandskron/backups/hermes-*.tar.gz 2>/dev/null | head -1)
+latest=$(ls -1t /home/usuario/backups/hermes-*.tar.gz 2>/dev/null | head -1)
 if [ -n "$latest" ]; then
   age=$(( ( $(date +%s) - $(stat -c %Y "$latest") ) / 3600 ))
   if [ "$age" -le 48 ]; then ok "backup recente (${age}h)"; else bad "backup antigo (${age}h)"; fi
@@ -1144,7 +1144,7 @@ PY
 else
   bad "nenhum backup encontrado"
 fi
-if grep -Eq 'image:.*:(main|rocm|latest)([[:space:]]|$)' /home/tlandskron/hermes-architect/docker-compose.yml; then
+if grep -Eq 'image:.*:(main|rocm|latest)([[:space:]]|$)' /home/usuario/hermes-architect/docker-compose.yml; then
   bad "compose com tag flutuante (:main/:rocm/:latest)"
 else
   ok "imagens pinadas (sem :main/:rocm/:latest)"
@@ -1154,7 +1154,7 @@ fi
 section "RAG — E2E sob demanda (SMOKE_RAG=1)"
 if [ "${SMOKE_RAG:-0}" = "1" ]; then
   sut=$(cd "$(dirname "${BASH_SOURCE[0]}")" 2>/dev/null && pwd)
-  [ -f "$sut/smoke_rag.py" ] || sut=/home/tlandskron/hermes-architect/tests
+  [ -f "$sut/smoke_rag.py" ] || sut=/home/usuario/hermes-architect/tests
   # mktemp: com fs.protected_regular, o root não sobrescreve um log antigo em /tmp
   # de outro dono (era o que fazia o smoke "falhar" lendo o arquivo velho).
   smoke_out=$(mktemp /tmp/smoke-rag.XXXXXX)
@@ -1172,7 +1172,7 @@ fi
 
 # ---------------------------------------------------------------------------
 section "SEGREDOS — credencial não mora no repo"
-DOCDIR=/home/tlandskron/hermes-architect
+DOCDIR=/home/usuario/hermes-architect
 # Varre só o que o sync ENTREGA (árvore versionada). `archive/` fica de fora: é
 # quarentena local (ebook, PDF, export de sessão) e não viaja para o host.
 SCAN=$(cd "$DOCDIR" 2>/dev/null && ls -d tests ops tools monitoring nginx searxng hermes-data docs 2>/dev/null; cd "$DOCDIR" 2>/dev/null && ls *.md docker-compose.yml .env.example 2>/dev/null)
@@ -1206,11 +1206,11 @@ else
   bad "gerador do espelho publico (ops/deploy/make-public-repo.ps1) ou card faltando"
 fi
 miss=""
-for par in 'admin@example.com' 'teste@example.com' 'C:\Users\usuario'; do
+for par in 'admin@example.com' 'teste@example.com' 'C:\Users\usuario' "De = 'usuario'" "Para = 'usuario'"; do
   grep -qF -- "$par" "$PUB" 2>/dev/null || miss="$miss [$par]"
 done
 if [ -z "$miss" ]; then
-  ok "espelho publico: tabela de redacao completa (e-mail pessoal, e-mail de teste, caminho do Windows)"
+  ok "espelho publico: tabela de redacao completa (e-mails, caminho Windows e usuário Linux)"
 else
   bad "espelho publico: tabela de redacao incompleta:$miss"
 fi
@@ -1231,7 +1231,7 @@ section "DOCUMENTAÇÃO — caminhos citados existem"
 # mandar rodar o que não existe. Aqui todo `tools/…`, `ops/…`, `tests/…`,
 # `monitoring/…`, `nginx/…` e `docs/…` citado num .md tem de existir no repo
 # sincronizado. A varredura cobre a raiz (README, AGENTS) e docs/ recursivamente.
-DOCDIR=/home/tlandskron/hermes-architect
+DOCDIR=/home/usuario/hermes-architect
 dead=""
 while IFS= read -r f; do
   [ -f "$f" ] || continue

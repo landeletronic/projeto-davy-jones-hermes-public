@@ -21,7 +21,7 @@ configuração de RAG não está efetiva (ver [open-webui](open-webui.md), `Pers
 ## Reiniciar
 
 ```bash
-cd /home/tlandskron/hermes-architect && docker compose restart docling
+cd /home/usuario/hermes-architect && docker compose restart docling
 ```
 
 ## Sintomas típicos

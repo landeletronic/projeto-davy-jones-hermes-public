@@ -8,7 +8,7 @@
 | **Escopo** | Diretórios do projeto Medusa / Davy-Jones no host |
 | **Data da coleta** | 20/10/2026, 18:00–18:15 (-03:00) |
 | **Método** | Inspeção somente leitura via SSH (`ls`, `find`, `du`, `stat`, `systemctl --user cat`, `docker inspect`) |
-| **Conta operadora** | `tlandskron` (UID 1000), com *lingering* de systemd habilitado |
+| **Conta operadora** | `usuario` (UID 1000), com *lingering* de systemd habilitado |
 | **Armazenamento** | 735 GB no volume raiz, 79 GB usados (**12%**), 619 GB livres |
 | **Segredos** | Nenhum token, senha ou chave é reproduzido neste documento |
 
@@ -55,7 +55,7 @@ Tamanhos medidos com `du -sh` (inclui subdiretórios, links não seguidos). Crit
 ## 3. Mapa geral do home
 
 ```
-/home/tlandskron/
+/home/usuario/
 ├── medusa/                      3,4G  🔴  Aplicação de recuperação de evidências
 ├── davy-jones/                  432M  🔴  Administração, filas e interface
 ├── observability/                80K  🟠  Prometheus + Grafana + node-exporter
@@ -98,22 +98,22 @@ Volumes Docker fora do home (seção 5.5):
 
 | Subdiretório | Tam. | Dono | Função |
 |---|---:|---|---|
-| `core/` | 188K | tlandskron | Código do serviço `medusa_core` + testes |
-| `config/` | 8K | tlandskron | `core.json` — coleção, modelo, dimensão, SHA do corpus |
-| `compose/` | 8K | tlandskron | Compose do Docling Serve (GPU, porta 5001) |
-| `documents/` | 12M | tlandskron | Inbox e arquivos de origem do fluxo de ingestão |
-| `workspace/` | 14M | tlandskron | Registro publicado e revisões imutáveis |
-| `rag-worker/` | 148K | tlandskron | Fila durável de ingestão (SQLite + thread única) |
-| `searxng/` | 216K | tlandskron | Busca web interna (porta 8081) |
-| `docling/` | 31M | tlandskron | Modelos OCR e scratch do conversor |
-| `data/` | 126M | tlandskron | 38 execuções de experimentos M4.x/M5.x |
+| `core/` | 188K | usuario | Código do serviço `medusa_core` + testes |
+| `config/` | 8K | usuario | `core.json` — coleção, modelo, dimensão, SHA do corpus |
+| `compose/` | 8K | usuario | Compose do Docling Serve (GPU, porta 5001) |
+| `documents/` | 12M | usuario | Inbox e arquivos de origem do fluxo de ingestão |
+| `workspace/` | 14M | usuario | Registro publicado e revisões imutáveis |
+| `rag-worker/` | 148K | usuario | Fila durável de ingestão (SQLite + thread única) |
+| `searxng/` | 216K | usuario | Busca web interna (porta 8081) |
+| `docling/` | 31M | usuario | Modelos OCR e scratch do conversor |
+| `data/` | 126M | usuario | 38 execuções de experimentos M4.x/M5.x |
 | `artifacts/` | 7,1M | **root** | Artefatos M5.11 / M5.12 (materialização e embeddings) |
-| `recovery/` | 1,3M | tlandskron | Export pontual de recuperação (01/10) |
-| `ops/` | 177M | tlandskron | `lab_ops.py`, verificação de browser, venv Playwright |
-| `backups/` | **3,0G** | tlandskron | 31 backups operacionais completos |
-| `logs/` | 8K | tlandskron | Reservado para Docling; vazio na prática |
-| `scripts/` | 8K | tlandskron | `reset_password_tlandskron.py` (0600) |
-| `README.md` | 4K | tlandskron | Visão geral e ponteiros para Core/Ops |
+| `recovery/` | 1,3M | usuario | Export pontual de recuperação (01/10) |
+| `ops/` | 177M | usuario | `lab_ops.py`, verificação de browser, venv Playwright |
+| `backups/` | **3,0G** | usuario | 31 backups operacionais completos |
+| `logs/` | 8K | usuario | Reservado para Docling; vazio na prática |
+| `scripts/` | 8K | usuario | `reset_password_usuario.py` (0600) |
+| `README.md` | 4K | usuario | Visão geral e ponteiros para Core/Ops |
 
 #### `core/` — o serviço de recuperação
 
@@ -240,7 +240,7 @@ A réplica remota é feita por SMB sobre Tailscale, de hora em hora, a partir do
 #### `logs/` e `scripts/`
 
 - `logs/docling/` — previsto para logs do conversor, mas **vazio**: a operação real concentra tudo em `~/log`.
-- `scripts/reset_password_tlandskron.py` — redefinição de senha humana, modo 0600.
+- `scripts/reset_password_usuario.py` — redefinição de senha humana, modo 0600.
 
 ---
 
@@ -550,19 +550,19 @@ Regra de ouro: **`documents/incoming` é entrada; `workspace/revisions` é saíd
 
 | Caminho | Modo | Dono | Motivo |
 |---|---|---|---|
-| `~/medusa` | 775 | tlandskron | Operação normal |
-| `~/medusa/documents/incoming` | 775 | tlandskron | Precisa aceitar arquivo do operador |
-| `~/medusa/workspace` | **700** | tlandskron | Conteúdo jurídico e revisões |
-| `~/medusa/rag-worker` | **700** | tlandskron | Fila e lock |
-| `~/medusa/backups` | 755 | tlandskron | Leitura pelo verificador |
+| `~/medusa` | 775 | usuario | Operação normal |
+| `~/medusa/documents/incoming` | 775 | usuario | Precisa aceitar arquivo do operador |
+| `~/medusa/workspace` | **700** | usuario | Conteúdo jurídico e revisões |
+| `~/medusa/rag-worker` | **700** | usuario | Fila e lock |
+| `~/medusa/backups` | 755 | usuario | Leitura pelo verificador |
 | `~/medusa/artifacts` | 755 | **root** | Imutabilidade dos artefatos M5 |
-| `~/davy-jones` | 750 | tlandskron | App + config |
-| `~/davy-jones/config` | **700** | tlandskron | Tokens e hashes |
-| `~/davy-jones/data` | **700** | tlandskron | Perguntas, evidências, jobs |
+| `~/davy-jones` | 750 | usuario | App + config |
+| `~/davy-jones/config` | **700** | usuario | Tokens e hashes |
+| `~/davy-jones/data` | **700** | usuario | Perguntas, evidências, jobs |
 | `~/backups` | 755 | **root** | Rollback resistente ao operador |
-| `~/log`, `~/txt` | 775 | tlandskron | Leitura e escrita contínuas |
+| `~/log`, `~/txt` | 775 | usuario | Leitura e escrita contínuas |
 
-Os arquivos sensíveis seguem 0600: `admin.json`, `human_auth.json`, `mem0.json`, `core-config/settings.yml`, `proxy.env`, senha SMB, `reset_password_tlandskron.py`.
+Os arquivos sensíveis seguem 0600: `admin.json`, `human_auth.json`, `mem0.json`, `core-config/settings.yml`, `proxy.env`, senha SMB, `reset_password_usuario.py`.
 
 ---
 
@@ -627,7 +627,7 @@ Os arquivos sensíveis seguem 0600: `admin.json`, `human_auth.json`, `mem0.json`
 
 ## 13. O ponto mais importante
 
-O host Medusa é **uma instalação de usuário, não uma instalação de sistema**. Não procure nada em `/opt`, `/etc` ou `/var/lib`: tudo o que importa está em `/home/tlandskron`, e o que parece "infraestrutura" (PostgreSQL, Redis, Qdrant, Prometheus) é composto por containers cujo estado vive em `/var/lib/docker/volumes`.
+O host Medusa é **uma instalação de usuário, não uma instalação de sistema**. Não procure nada em `/opt`, `/etc` ou `/var/lib`: tudo o que importa está em `/home/usuario`, e o que parece "infraestrutura" (PostgreSQL, Redis, Qdrant, Prometheus) é composto por containers cujo estado vive em `/var/lib/docker/volumes`.
 
 A árvore é menor do que o volume sugere. **Menos de 250 MB são código, configuração e documentos.** Os 3,4 GB de `~/medusa` são quase todos backup; os 5,7 GB de `.codex`/`.hermes` são runtime encerrado; os 29 GB de Ollama são modelos baixados. Quem for limpar espaço deve olhar primeiro para retenção de backup, modelos não usados e diretórios legados — nessa ordem — e **nunca** para `workspace/`, `documents/` ou `backups/` sem autorização explícita, porque são os três lugares onde a prova jurídica existe.
 

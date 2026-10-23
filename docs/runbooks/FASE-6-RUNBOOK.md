@@ -33,7 +33,7 @@ navegador ──HTTPS──►│ nginx :443 (TLS)  :3001 (TLS)
 
 ## 2. O que mudou
 
-`docker-compose.yml` (host: `/home/tlandskron/hermes-architect/docker-compose.yml`):
+`docker-compose.yml` (host: `/home/usuario/hermes-architect/docker-compose.yml`):
 
 ### 6.1 — RAG
 - serviço `docling` (porta `127.0.0.1:5001`, volume `docling_cache`, CPU, 8 threads);
@@ -71,7 +71,7 @@ quebraria em 2029-01-20 sem aviso.
 - **Renovar (um comando):**
 
   ```bash
-  ssh davy-jones-hermes 'bash /home/tlandskron/hermes-architect/tools/make_tls_cert.sh --force --reload'
+  ssh davy-jones-hermes 'bash /home/usuario/hermes-architect/tools/make_tls_cert.sh --force --reload'
   ```
 
   O script guarda o par antigo (`*.bak-<data>`), gera chave nova, recarrega o nginx e
@@ -93,7 +93,7 @@ quebraria em 2029-01-20 sem aviso.
   e por container; interno.
 - `grafana` (`13.2.4`): só na rede interna; sai para a LAN via nginx em
   **https://192.168.15.231:3001**. Admin = `admin` / senha em
-  `/home/tlandskron/hermes-architect/.env` (`GRAFANA_ADMIN_PASSWORD`).
+  `/home/usuario/hermes-architect/.env` (`GRAFANA_ADMIN_PASSWORD`).
 - provisioning: datasource Prometheus (uid `prometheus`) + dashboard
   **“Hermes Lab — Host & Containers”** (CPU/RAM/disco/load + top containers).
 
@@ -105,7 +105,7 @@ quebraria em 2029-01-20 sem aviso.
   > ⚠️ **Correção (Fase 7, 2026-10-18):** o pacote `cron` **não estava instalado** no host, então
   > esta entrada **não rodava** — os backups da 6.4 foram manuais. O cron foi instalado e
   > habilitado na Fase 7 (ver `FASE-7-RUNBOOK.md` §5.6), e a suíte agora checa o daemon.
-  Gera `/home/tlandskron/backups/hermes-<UTC>.tar.gz` (600) com:
+  Gera `/home/usuario/backups/hermes-<UTC>.tar.gz` (600) com:
   1. `docker-compose.rendered.yml` (compose efetivo, com segredos);
   2. `project-config.tgz` (compose, `.env`, nginx, monitoring, searxng);
   3. `.hermes/` (config, mem0.json, plugins, skills — sem caches/runtime);
@@ -128,7 +128,7 @@ quebraria em 2029-01-20 sem aviso.
 
 ```bash
 # 1) subir docling (primeiro boot precisa dos pesos — ver §5)
-cd /home/tlandskron/hermes-architect
+cd /home/usuario/hermes-architect
 docker compose up -d docling
 docker inspect -f '{{.State.Health.Status}}' docling     # healthy
 
@@ -142,7 +142,7 @@ docker compose up -d
 
 # 4) backup (instalar + agendar)
 sudo install -m 755 ops/bin/backup_stack.sh /usr/local/bin/hermes-backup
-echo '30 3 * * * tlandskron /usr/local/bin/hermes-backup >> /home/tlandskron/backups/backup.log 2>&1' \
+echo '30 3 * * * usuario /usr/local/bin/hermes-backup >> /home/usuario/backups/backup.log 2>&1' \
   | sudo tee /etc/cron.d/hermes-backup
 
 # 5) suíte
@@ -240,11 +240,11 @@ Há arquivos root (ex.: `.ssh`, caches). O script usa `sudo tar` e exclui caches
 **Restaurar um backup**
 
 ```bash
-mkdir -p /tmp/restore && tar -xzf /home/tlandskron/backups/latest.tar.gz -C /tmp/restore
+mkdir -p /tmp/restore && tar -xzf /home/usuario/backups/latest.tar.gz -C /tmp/restore
 # webui.db  -> docker cp para open-webui:/app/backend/data/   (com o container parado)
-# .hermes   -> /home/tlandskron/  (extrair hermes-data.tgz)
+# .hermes   -> /home/usuario/  (extrair hermes-data.tgz)
 # snapshots -> POST /collections/<c>/snapshots/upload?priority=snapshot  (Qdrant)
-# configs   -> extrair project-config.tgz em /home/tlandskron/hermes-architect/
+# configs   -> extrair project-config.tgz em /home/usuario/hermes-architect/
 ```
 
 ## 6. Estado da Fase 6

@@ -17,7 +17,7 @@ servindo o antigo" é coberta pelo check de **fingerprint** da suíte, não por 
 
 ```bash
 ssh davy-jones-hermes 'sudo /usr/local/bin/tls-cert-metrics'
-ssh davy-jones-hermes 'grep hermes_tls_cert /home/tlandskron/hermes-architect/ci/textfile/*.prom'
+ssh davy-jones-hermes 'grep hermes_tls_cert /home/usuario/hermes-architect/ci/textfile/*.prom'
 ```
 
 Esperado: `days_left` positivo e decrescente dia a dia.

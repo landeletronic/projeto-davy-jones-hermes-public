@@ -7,12 +7,12 @@
 # sem tocar em nada. O worker ainda espera 30 s de estabilidade antes de ler o
 # arquivo (cópia grande não é lida pela metade).
 #
-# Roda como tlandskron: é o dono do share (~/documents) e do estado (~/rag-state).
+# Roda como usuario: é o dono do share (~/documents) e do estado (~/rag-state).
 # Como root, _relatorio/ e _rejeitados/ nasceriam com dono root dentro do share
 # e o usuário não conseguiria mexer. O wrapper também toma flock, então um lote
 # grande (16 PDFs = 9m45s) nunca é atropelado pela execução seguinte.
 SHELL=/bin/bash
 PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-HOME=/home/tlandskron
+HOME=/home/usuario
 
-*/15 * * * * tlandskron /usr/local/bin/rag-ingest
+*/15 * * * * usuario /usr/local/bin/rag-ingest

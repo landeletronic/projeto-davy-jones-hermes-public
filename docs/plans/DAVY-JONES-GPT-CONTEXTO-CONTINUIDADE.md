@@ -103,7 +103,7 @@ GPU1:
 
 **Interpretação:** RADV da RX 6600 está funcional no guest. `llvmpipe` adicional não invalida o RADV. A mensagem `DISPLAY environment variable not set` é compatível com servidor headless.
 
-**Bug do script 3.10:** após `[OK] RESULTADO: PASS`, ocorreu `/home/tlandskron/10-preparacao-vulkan-radv.sh: line 151: out: unbound variable`. Causa identificada: `trap ... RETURN` referenciando variável local `out` fora de escopo sob `set -u`. A tentativa posterior de gerar arquivos corrigidos não foi concluída devido à indisponibilidade da ferramenta. **Não presumir que a correção foi entregue ou aplicada.** Corrigir limpeza do arquivo temporário e validar novamente em modo somente leitura, se solicitado.
+**Bug do script 3.10:** após `[OK] RESULTADO: PASS`, ocorreu `/home/usuario/10-preparacao-vulkan-radv.sh: line 151: out: unbound variable`. Causa identificada: `trap ... RETURN` referenciando variável local `out` fora de escopo sob `set -u`. A tentativa posterior de gerar arquivos corrigidos não foi concluída devido à indisponibilidade da ferramenta. **Não presumir que a correção foi entregue ou aplicada.** Corrigir limpeza do arquivo temporário e validar novamente em modo somente leitura, se solicitado.
 
 ## 7. Modelos e benchmarks discutidos
 

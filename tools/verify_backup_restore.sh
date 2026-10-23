@@ -17,7 +17,7 @@
 # =============================================================================
 set -uo pipefail
 
-BACKUP="${1:-$(ls -1t /home/tlandskron/backups/hermes-*.tar.gz 2>/dev/null | head -1)}"
+BACKUP="${1:-$(ls -1t /home/usuario/backups/hermes-*.tar.gz 2>/dev/null | head -1)}"
 QDRANT="${QDRANT:-http://localhost:6333}"
 PASS=0
 FAIL=0

@@ -14,7 +14,7 @@ O painel exige login; as três variáveis vivem no `.env` (o compose só interpo
 2026-10-23; antes ficavam escritas no `docker-compose.yml`):
 
 ```bash
-grep HERMES_DASHBOARD_BASIC_AUTH /home/tlandskron/hermes-architect/.env
+grep HERMES_DASHBOARD_BASIC_AUTH /home/usuario/hermes-architect/.env
 ```
 
 | variável | o que é |
@@ -29,7 +29,7 @@ volta na resposta. Sem sessão, só `/api/health` e `/api/status` respondem.
 ### Trocar a senha
 
 1. edite `HERMES_DASHBOARD_BASIC_AUTH_PASSWORD` (e, de preferência, o `..._SECRET`) no `.env`;
-2. `cd /home/tlandskron/hermes-architect && docker compose up -d hermes-dashboard`
+2. `cd /home/usuario/hermes-architect && docker compose up -d hermes-dashboard`
    — **o `sync-to-host.ps1` copia o `.env` mas não aplica o compose**;
 3. prove o login (abaixo). A senha antiga para de valer na hora; trocou o secret, os navegadores
    já logados caem.
@@ -52,7 +52,7 @@ curl -s -o /dev/null -w '%{http_code}\n' http://192.168.15.231:9119/   # pela LA
 ## Reiniciar
 
 ```bash
-cd /home/tlandskron/hermes-architect && docker compose restart hermes-dashboard
+cd /home/usuario/hermes-architect && docker compose restart hermes-dashboard
 ```
 
 ## Sintomas típicos

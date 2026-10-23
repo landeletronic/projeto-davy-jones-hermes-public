@@ -147,7 +147,7 @@ services:
       # Eixo de estudos: o share de documentos entra SOMENTE LEITURA em /documents.
       # O worker (tools/rag_ingest.py) aponta o uploader para /documents/<caminho>,
       # sem copiar arquivo nenhum para dentro do container.
-      - /home/tlandskron/documents:/documents:ro
+      - /home/usuario/documents:/documents:ro
     environment:
       OLLAMA_BASE_URL: http://ollama:11434
       WEBUI_AUTH: "true" # ANTES era "false" — decisão C exige login e-mail+senha
@@ -237,8 +237,8 @@ services:
       retries: 3
       start_period: 1m0s
     volumes:
-      - /home/tlandskron/.hermes:/opt/data
-      - /home/tlandskron/hermes-architect:/workspace
+      - /home/usuario/.hermes:/opt/data
+      - /home/usuario/hermes-architect:/workspace
       # Sem /var/run/docker.sock e sem ~/.ssh: a ferramenta shell roda LOCAL
       # (terminal.backend: local), então não precisa de nenhum dos dois — e com
       # eles um comando pedido no chat valeria root no host / as chaves do host.
@@ -277,7 +277,7 @@ services:
       HERMES_GID: "1000"
       HERMES_UID: "1000"
     volumes:
-      - /home/tlandskron/.hermes:/opt/data
+      - /home/usuario/.hermes:/opt/data
     networks:
       - backend
 

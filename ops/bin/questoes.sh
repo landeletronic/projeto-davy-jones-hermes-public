@@ -6,7 +6,7 @@
 # /etc/cron.d/questoes. A lógica é do tools/questoes.py (host, só stdlib) —
 # este wrapper só cuida do que o cron precisa:
 #
-#   1. roda como tlandskron (dono do share e do ~/rag-state): o relatório
+#   1. roda como usuario (dono do share e do ~/rag-state): o relatório
 #      _relatorio/QUESTOES.md e o .md de estatísticas nascem DENTRO do share;
 #      como root, o dono seria root e o usuário não conseguiria mexer;
 #   2. flock -n: o import de 8 anos com OCR leva ~10 s, mas se uma execução
@@ -22,17 +22,17 @@
 # =============================================================================
 set -uo pipefail
 export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-export HOME=${HOME:-/home/tlandskron}
+export HOME=${HOME:-/home/usuario}
 
-REPO=${HERMES_REPO:-/home/tlandskron/hermes-architect}
+REPO=${HERMES_REPO:-/home/usuario/hermes-architect}
 WORKER="$REPO/tools/questoes.py"
-STATE=${RAG_STATE:-/home/tlandskron/rag-state}
+STATE=${RAG_STATE:-/home/usuario/rag-state}
 LOG="$STATE/questoes.log"
 LOCK="$STATE/questoes.lock"
 
 # Chamado à mão como root? refaz como o dono do share.
 if [ "$(id -u)" = "0" ]; then
-  exec sudo -u tlandskron -- "$0" "$@"
+  exec sudo -u usuario -- "$0" "$@"
 fi
 
 mkdir -p "$STATE"

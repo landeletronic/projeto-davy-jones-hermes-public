@@ -11,7 +11,7 @@ Parametro de conversao nao resolve (`table_mode=accurate`, `force_ocr`, os quatr
 este complemento: um `.md` com o texto dessas paginas, extraido do proprio PDF
 (`pdftotext`), que o worker ingere como documento normal.
 
-Uso (no host, como tlandskron):
+Uso (no host, como usuario):
     python3 tools/rag_complemento.py --dry-run          # so mostra as paginas
     python3 tools/rag_complemento.py                    # grava os complementos
     python3 tools/rag_complemento.py --limiar 0.5       # criterio mais duro
@@ -32,8 +32,8 @@ import sys
 import unicodedata
 import urllib.request
 
-DOCS = '/home/tlandskron/documents'
-MANIFEST = '/home/tlandskron/rag-state/manifest.csv'
+DOCS = '/home/usuario/documents'
+MANIFEST = '/home/usuario/rag-state/manifest.csv'
 QDRANT = 'http://127.0.0.1:6333'
 COLL = 'owui_knowledge'
 LIMIAR = 0.6      # abaixo disso a pagina perdeu mais de 40% do texto

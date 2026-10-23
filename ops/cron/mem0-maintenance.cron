@@ -9,4 +9,4 @@
 SHELL=/bin/bash
 PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
-0 3 * * * tlandskron /usr/local/bin/mem0-maintenance >> /home/tlandskron/backups/mem0-maintenance.log 2>&1
+0 3 * * * usuario /usr/local/bin/mem0-maintenance >> /home/usuario/backups/mem0-maintenance.log 2>&1

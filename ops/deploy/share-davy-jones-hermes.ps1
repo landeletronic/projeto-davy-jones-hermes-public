@@ -1,9 +1,9 @@
 #requires -Version 5.0
 <#
-  Compartilha a pasta do laboratorio na LAN APENAS com o usuario tlandskron.
+  Compartilha a pasta do laboratorio na LAN APENAS com o usuario usuario.
     - Share SMB : davy-jones-hermes  ->  C:\Users\usuario\Downloads\davy-jones-hermes
-    - Permissao de share : somente tlandskron (Change = leitura + gravacao)
-    - NTFS : somente tlandskron + SISTEMA (Controle Total); heranca removida
+    - Permissao de share : somente usuario (Change = leitura + gravacao)
+    - NTFS : somente usuario + SISTEMA (Controle Total); heranca removida
     - Administradores / Usuarios / Todos / Usuarios Autenticados : REMOVIDOS
     - O firewall NAO e alterado (decisao do usuario)
   Idempotente: pode rodar quantas vezes quiser.
@@ -13,7 +13,7 @@ $ErrorActionPreference = 'Stop'
 
 $Folder = 'C:\Users\usuario\Downloads\davy-jones-hermes'
 $Share  = 'davy-jones-hermes'
-$User   = 'B550M-AORUS-ELI\tlandskron'
+$User   = 'B550M-AORUS-ELI\usuario'
 $System = New-Object System.Security.Principal.SecurityIdentifier('S-1-5-18')  # NT AUTHORITY\SYSTEM
 
 function Say($m) { Write-Output $m }
@@ -45,7 +45,7 @@ try {
         Remove-SmbShare -Name $Share -Force
     }
     New-SmbShare -Name $Share -Path $Folder -ChangeAccess $User -CachingMode None `
-        -Description 'Lab davy-jones-hermes (somente tlandskron)' | Out-Null
+        -Description 'Lab davy-jones-hermes (somente usuario)' | Out-Null
     # garante que ninguem mais tem permissao de share (ex.: Everyone)
     Get-SmbShareAccess -Name $Share | ForEach-Object {
         if ($_.AccountName -ne $User) {

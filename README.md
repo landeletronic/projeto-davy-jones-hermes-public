@@ -12,7 +12,7 @@ com GPU de 8 GB.
   com prova de restore; **CI** roda o oráculo todo dia.
 
 > Este diretório é o **repositório de trabalho** (compartilhado por SMB). O host executa uma
-> cópia sincronizada em `/home/tlandskron/hermes-architect` — é essa cópia que o cron usa.
+> cópia sincronizada em `/home/usuario/hermes-architect` — é essa cópia que o cron usa.
 
 ## Estado atual (2026-10-23)
 

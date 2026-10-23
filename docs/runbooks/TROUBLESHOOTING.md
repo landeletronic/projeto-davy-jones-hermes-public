@@ -6,8 +6,8 @@
 ## Triagem em 3 comandos
 
 ```bash
-ssh davy-jones-hermes 'cd /home/tlandskron/hermes-architect && docker compose ps'
-ssh davy-jones-hermes 'bash /home/tlandskron/hermes-architect/tests/verify_stack.sh'   # o oráculo
+ssh davy-jones-hermes 'cd /home/usuario/hermes-architect && docker compose ps'
+ssh davy-jones-hermes 'bash /home/usuario/hermes-architect/tests/verify_stack.sh'   # o oráculo
 ssh davy-jones-hermes '/usr/local/bin/hermes-ci --quiet'                               # o mesmo, via CI
 ```
 
@@ -81,7 +81,7 @@ ssh davy-jones-hermes "curl -s localhost:6333/collections/mem0_memories | python
 
 ```bash
 ssh davy-jones-hermes 'sudo cat /var/log/hermes-ci.log | tail -40'
-ssh davy-jones-hermes 'bash /home/tlandskron/hermes-architect/tests/verify_stack.sh'
+ssh davy-jones-hermes 'bash /home/usuario/hermes-architect/tests/verify_stack.sh'
 ```
 
 - **WARN** de estado do CI é auto-referente: depois de um run vermelho, rode de novo para zerar.

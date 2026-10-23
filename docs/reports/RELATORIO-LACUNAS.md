@@ -132,6 +132,6 @@ sem exposição de rede, a rotação não pagaria o risco de quebrar a conexão 
 ```bash
 ssh davy-jones-hermes '/usr/local/bin/hermes-ci --quiet'     # PASS/FAIL/WARN
 ssh davy-jones-hermes 'mem0-maintenance --dry-run'
-ssh davy-jones-hermes 'bash /home/tlandskron/hermes-architect/tools/drill_restore_clean.sh'
-ssh davy-jones-hermes 'bash /home/tlandskron/hermes-architect/tools/verify_backup_restore.sh'
+ssh davy-jones-hermes 'bash /home/usuario/hermes-architect/tools/drill_restore_clean.sh'
+ssh davy-jones-hermes 'bash /home/usuario/hermes-architect/tools/verify_backup_restore.sh'
 ```

@@ -7,4 +7,4 @@
 SHELL=/bin/bash
 PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
-10 4 * * * tlandskron /usr/local/bin/hermes-ci --quiet >> /home/tlandskron/ci/cron.log 2>&1
+10 4 * * * usuario /usr/local/bin/hermes-ci --quiet >> /home/usuario/ci/cron.log 2>&1

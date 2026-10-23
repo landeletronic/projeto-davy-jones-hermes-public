@@ -204,7 +204,7 @@ Sem o header, todo mundo cai no balde `hermes-user`. Depois disso, repetir o tes
 
 ### Fase 5c — Ponte de tools desligada (obrigatório p/ modelo pequeno) ✅ CONCLUÍDA (2026-10-17)
 
-> Conferido em `/home/tlandskron/.hermes/config.yaml`: `tools.tool_search.enabled: "off"` já está aplicado.
+> Conferido em `/home/usuario/.hermes/config.yaml`: `tools.tool_search.enabled: "off"` já está aplicado.
 
 Sintoma no navegador: o chat "trava" e o Ollama fica gerando sem parar (uma task com 992+ tokens).
 Causa: com `tools.tool_search` no padrão (`enabled: auto`), as tools ficam **deferred** atrás da ponte

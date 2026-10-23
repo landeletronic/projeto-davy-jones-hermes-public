@@ -11,7 +11,7 @@
 | Estado/log | `~/rag-state/questoes.log`, `~/rag-state/questoes.lock` |
 | Relatório | `~/documents/_relatorio/QUESTOES.md` (situação por ano) |
 | Documento citável | `~/documents/referencias/estatisticas-questoes.md` → ingerido pelo `rag-ingest` |
-| Roda como | `tlandskron` (dono do share e do estado) |
+| Roda como | `usuario` (dono do share e do estado) |
 | Plano | [`../../plans/BANCO-DE-QUESTOES.md`](../../plans/BANCO-DE-QUESTOES.md) |
 
 ## O que faz
@@ -59,7 +59,7 @@ o PDF para resolver.
 ```bash
 ssh davy-jones-hermes "python3 - <<'PY'
 import sqlite3
-c = sqlite3.connect('/home/tlandskron/rag-state/questoes.db')
+c = sqlite3.connect('/home/usuario/rag-state/questoes.db')
 for r in c.execute('select ano, status, detalhe from ano_status order by ano'):
     print(r)
 PY"
@@ -74,7 +74,7 @@ PY"
 | `tesseract não está instalado` | host reinstalado | `sudo apt-get install -y tesseract-ocr tesseract-ocr-por` |
 | estatísticas não aparecem no chat | worker de ingestão não rodou ainda | `rag-ingest --dry-run`; em ≤ 15 min entra |
 | `skip` repetido em `questoes.log` | execução anterior travada | `ps aux \| grep questoes`; o `flock` libera sozinho |
-| arquivo do share com dono root | alguém rodou o worker como root | o wrapper troca para `tlandskron`; corrija com `sudo chown -R tlandskron:tlandskron ~/documents` |
+| arquivo do share com dono root | alguém rodou o worker como root | o wrapper troca para `usuario`; corrija com `sudo chown -R usuario:usuario ~/documents` |
 
 ## Reinstalar / desligar
 

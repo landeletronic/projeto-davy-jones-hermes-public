@@ -41,6 +41,11 @@ commit novo, sempre a partir do `HEAD` já sanitizado. Nenhum byte do passado en
 | e-mail pessoal do dono | `admin@example.com` | aparece nas docs e como admin padrão das ferramentas |
 | e-mail do 2º usuário de teste | `teste@example.com` | usado nos testes de isolamento A/B |
 | caminho da pasta do usuário no Windows | `C:\Users\usuario` | os scripts de deploy citam o caminho absoluto |
+| nome do usuário Linux | `usuario` | aparece em caminhos `/home/...`, comandos SSH, cron e exemplos operacionais |
+
+A regra do nome Linux roda **por último**. Assim, primeiro os e-mails viram endereços
+`@example.com` e o caminho completo do Windows vira `C:\Users\usuario`; só depois qualquer
+`usuario` restante é trocado por `usuario`.
 
 IP da LAN (`192.168.15.231`) e o hostname `davy-jones-hermes` **ficam**: são rede interna e o nome
 do projeto (mesmo critério do `projeto-medusa-public`).
@@ -51,7 +56,7 @@ do projeto (mesmo critério do `projeto-medusa-public`).
   dashboard) — a mesma fonte da verdade que a suíte usa;
 - arquivos com cara de segredo: `.env`, `*.db`, `*.bak`, `*.key`, `*.pem`, `*.crt`, `*.p12`,
   `*.pfx`, `*.kdbx`, `keystore`;
-- `BEGIN … PRIVATE KEY`, o caminho pessoal do Windows, o e-mail pessoal, qualquer endereço do
+- `BEGIN … PRIVATE KEY`, o caminho pessoal do Windows, o nome do usuário Linux, o e-mail pessoal, qualquer endereço do
   domínio de e-mail público, e `API_SERVER_KEY` com **valor literal** (interpolação `${VAR:?msg}`
   é o padrão certo);
 - arquivo com mais de **1 MB**.

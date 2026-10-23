@@ -4,7 +4,7 @@
 |---|---|
 | Arquivo | `ops/bin/backup_stack.sh` |
 | Instalado como | `/usr/local/bin/hermes-backup` |
-| Agendamento | `ops/cron/hermes-backup.cron` → **03:30**, usuário `tlandskron` |
+| Agendamento | `ops/cron/hermes-backup.cron` → **03:30**, usuário `usuario` |
 | Saída | `~/backups/hermes-<data>.tar.gz` (+ `backup.log`) |
 | Política | retenção **14 diários + 6 mensais** |
 
@@ -27,8 +27,8 @@ ssh davy-jones-hermes 'sudo /usr/local/bin/hermes-backup --prune-dry-run'   # s�
 ## Provar que presta
 
 ```bash
-ssh davy-jones-hermes 'bash /home/tlandskron/hermes-architect/tools/verify_backup_restore.sh'
-ssh davy-jones-hermes 'bash /home/tlandskron/hermes-architect/tools/drill_restore_clean.sh'
+ssh davy-jones-hermes 'bash /home/usuario/hermes-architect/tools/verify_backup_restore.sh'
+ssh davy-jones-hermes 'bash /home/usuario/hermes-architect/tools/drill_restore_clean.sh'
 ```
 
 O primeiro restaura os snapshots numa coleção temporária e apaga; o segundo sobe Qdrant + OWUI

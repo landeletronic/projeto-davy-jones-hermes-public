@@ -16,7 +16,7 @@
 # =============================================================================
 param(
     [string]$Remote = 'davy-jones-hermes',
-    [string]$RemoteDir = '/home/tlandskron/backups',
+    [string]$RemoteDir = '/home/usuario/backups',
     [string]$Dest = '\\localhost\backups\hermes-lab',
     [string[]]$ExtraDest = @(),
     [int]$Keep = 8

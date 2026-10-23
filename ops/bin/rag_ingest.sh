@@ -6,7 +6,7 @@
 # /etc/cron.d/rag-ingest. A lógica é do tools/rag_ingest.py (host, só stdlib) —
 # este wrapper só cuida do que o cron precisa:
 #
-#   1. roda como tlandskron (dono do share e do ~/rag-state): como root,
+#   1. roda como usuario (dono do share e do ~/rag-state): como root,
 #      _relatorio/ e _rejeitados/ nasceriam de root dentro do share;
 #   2. flock -n: um lote grande passa dos 15 min (16 PDFs = 9m45s); a execução
 #      seguinte não pode atropelar a anterior — ela registra "skip" e sai;
@@ -20,18 +20,18 @@
 # =============================================================================
 set -uo pipefail
 export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-export HOME=${HOME:-/home/tlandskron}
+export HOME=${HOME:-/home/usuario}
 
-REPO=${HERMES_REPO:-/home/tlandskron/hermes-architect}
+REPO=${HERMES_REPO:-/home/usuario/hermes-architect}
 WORKER="$REPO/tools/rag_ingest.py"
-STATE=${RAG_STATE:-/home/tlandskron/rag-state}
+STATE=${RAG_STATE:-/home/usuario/rag-state}
 LOG="$STATE/cron.log"
 LOCK="$STATE/ingest.lock"
 
 # Chamado à mão como root? refaz como o dono do share (senão os arquivos de
 # _rejeitados/ e _relatorio/ saem com dono root e o usuário não consegue mexer).
 if [ "$(id -u)" = "0" ]; then
-  exec sudo -u tlandskron -- "$0" "$@"
+  exec sudo -u usuario -- "$0" "$@"
 fi
 
 mkdir -p "$STATE"

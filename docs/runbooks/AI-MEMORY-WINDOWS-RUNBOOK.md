@@ -103,11 +103,11 @@ cat ~/.local/share/ai-memory/api-keys/b550m-aorus-elite.key
 >   é atribuição, nunca filtro de leitura. (Verificado: página escrita pela chave é lida
 >   pelo token raiz.)
 >
-> - **Handoffs e sessões passam a ter dono** (`user:tlandskron`). Um handoff começado no
+> - **Handoffs e sessões passam a ter dono** (`user:usuario`). Um handoff começado no
 >   Windows é entregue a quem tenha a **mesma identidade** — e hoje o root do servidor é
 >   *anônimo* (`root_username` comentado no `config.toml`), então ele **não** chega
 >   automaticamente do lado Linux. Recuperação explícita: `any_owner=true` (root). Para
->   casar as identidades, descomentar `root_username = "tlandskron"` no `config.toml` do
+>   casar as identidades, descomentar `root_username = "usuario"` no `config.toml` do
 >   servidor e reiniciar o serviço.
 >
 > - **`/admin/*` fica root-only** — é por isso que o CLI do Windows **não** roda
@@ -123,7 +123,7 @@ ai-memory api-key revoke 01a155ab-a7ce-7a91-8825-54dabf284cd9   # corta só esta
 ```
 
 > **A chave desta máquina:** id `01a155ab-a7ce-7a91-8825-54dabf284cd9`, label
-> `b550m-aorus-elite`, usuário `tlandskron` (login humano **desabilitado** — é identidade
+> `b550m-aorus-elite`, usuário `usuario` (login humano **desabilitado** — é identidade
 > somente-API; a chave continua válida, por design).
 
 Dois detalhes que mordem: o `token_pepper` **não pode mudar** depois de emitir chaves
@@ -186,7 +186,7 @@ Escreve (fusão, preservando os outros servidores MCP) em
 
 ```powershell
 ai-memory install-hooks --agent opencode2 --apply `
-  --as-user tlandskron `
+  --as-user usuario `
   --server-url https://omarchy.tail07368.ts.net `
   --auth-token "<TOKEN>"
 ```
@@ -346,7 +346,7 @@ Cinco provas, todas por evidência (executadas 2026-10-20):
    e sessões `agent_kind: open-code` de 2026-10-18 — vieram do lado Linux.
 5. **Captura ao vivo daqui:** a sessão em curso apareceu no servidor como
    `sessions/8fec9e17-…` com `cwd = C:\Users\usuario\Downloads\davy-jones-hermes`,
-   `actor_user = user:tlandskron`, iniciada em `2026-10-20T00:33:55Z`; o contador de
+   `actor_user = user:usuario`, iniciada em `2026-10-20T00:33:55Z`; o contador de
    observações subiu `822 → 868` enquanto o agente trabalhava.
 
 **Contraprova (decisiva) na estação Omarchy**, com o token raiz — os números têm de bater
@@ -406,7 +406,7 @@ curl.exe https://omarchy.tail07368.ts.net/healthz
 
 # 4) MCP + captura
 ai-memory install-mcp   --client opencode2 --apply --server-url "$Url/mcp" --auth-token "$Token"
-ai-memory install-hooks --agent  opencode2 --apply --as-user tlandskron --server-url "$Url" --auth-token "$Token"
+ai-memory install-hooks --agent  opencode2 --apply --as-user usuario --server-url "$Url" --auth-token "$Token"
 
 # 5) conferir PELO AGENTE — o CLI administrativo da 403 por design (ver §8)
 #    peca: "o que já sabemos sobre o isolamento por usuário do mem0?"

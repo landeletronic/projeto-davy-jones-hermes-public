@@ -4,7 +4,7 @@
 |---|---|
 | Arquivo | `ops/windows/pull-backups.ps1` |
 | Roda em | **Windows** (manual ou Task Scheduler) |
-| Origem | `davy-jones-hermes:/home/tlandskron/backups/hermes-*.tar.gz` |
+| Origem | `davy-jones-hermes:/home/usuario/backups/hermes-*.tar.gz` |
 | Destino padrão | `\\localhost\backups\hermes-lab` (mantém os **8** mais recentes) |
 | Integridade | copia para `%TEMP%` → confere **SHA-256** contra o host → só então move |
 

@@ -23,7 +23,7 @@
 # =============================================================================
 set -euo pipefail
 
-PROD_DIR=/home/tlandskron/hermes-architect/nginx/certs
+PROD_DIR=/home/usuario/hermes-architect/nginx/certs
 DIR="$PROD_DIR"
 DAYS=825
 FORCE=0

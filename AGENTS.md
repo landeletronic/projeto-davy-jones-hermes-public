@@ -20,15 +20,15 @@
 - No host: `bash tests/verify_stack.sh`
 - Remoto: `ssh davy-jones-hermes 'bash /tmp/verify_stack.sh'`
 - **Prova de restore** (sob demanda, restaura os snapshots no Qdrant em coleção temporária e apaga):
-  `ssh davy-jones-hermes 'bash /home/tlandskron/hermes-architect/tools/verify_backup_restore.sh'`
+  `ssh davy-jones-hermes 'bash /home/usuario/hermes-architect/tools/verify_backup_restore.sh'`
 - **Drill de restore limpo** (sob demanda, sobe Qdrant + OWUI **novos** em volumes vazios,
   restaura o backup neles e derruba tudo — prova que uma máquina vazia volta com os dados):
-  `ssh davy-jones-hermes 'bash /home/tlandskron/hermes-architect/tools/drill_restore_clean.sh'`
+  `ssh davy-jones-hermes 'bash /home/usuario/hermes-architect/tools/drill_restore_clean.sh'`
 - **Manutenção do mem0** (dedup/teto diário às 03:00; roda à mão com `--dry-run` para conferir):
   `ssh davy-jones-hermes 'mem0-maintenance --dry-run'`
 - **Instalar o Samba** (uma vez; depois o sync aplica a config e habilita o `smbd`):
   `ssh davy-jones-hermes 'sudo apt-get install -y samba'` — share `documentos` em `~/documents`
-- **Definir a senha do share** (separada da do Linux): `ssh -t davy-jones-hermes 'sudo smbpasswd -a tlandskron'`
+- **Definir a senha do share** (separada da do Linux): `ssh -t davy-jones-hermes 'sudo smbpasswd -a usuario'`
 - **Ingerir os documentos no RAG** (o cron faz a cada 15 min; à mão é o mesmo comando: varre
   `~/documents`, dedupa por SHA-256, sobe o que é novo para a base `Tiradentes BM` e reescreve
   `_relatorio/INGESTAO.md`): `ssh davy-jones-hermes 'rag-ingest'`
@@ -46,9 +46,9 @@
   `ssh davy-jones-hermes 'pdftotext -f 1 -l 1 arquivo.pdf -'` (texto) e `pdfinfo arquivo.pdf`
   (páginas). É como os documentos do eixo de estudos foram conferidos e classificados.
 - **Renovar o certificado TLS** (autoassinado; alerta aos 30 dias, expira 2029-01-20):
-  `ssh davy-jones-hermes 'bash /home/tlandskron/hermes-architect/tools/make_tls_cert.sh --force --reload'`
+  `ssh davy-jones-hermes 'bash /home/usuario/hermes-architect/tools/make_tls_cert.sh --force --reload'`
 - **RAG E2E** (sob demanda, upload → Docling → bge-m3 → Qdrant → resposta com citação):
-  `ssh davy-jones-hermes 'SMOKE_RAG=1 bash /home/tlandskron/hermes-architect/tests/verify_stack.sh'`
+  `ssh davy-jones-hermes 'SMOKE_RAG=1 bash /home/usuario/hermes-architect/tests/verify_stack.sh'`
 - **CI** (o mesmo oráculo, no host, via cron 04:10): `ssh davy-jones-hermes '/usr/local/bin/hermes-ci --quiet'`
 - **Deploy** (Windows → host: espelha o repo, confere o sha256 da suíte, aplica permissões,
   reinstala runner/cron, firewall, backup e ufw, e roda o CI): `powershell -File ops\deploy\sync-to-host.ps1`
@@ -71,7 +71,7 @@
   `docs/runbooks/scripts/make-public-repo.md`.
 
 > O sync **espelha** arquivos, mas não aplica compose. Mudou compose/volume (ex.: novo bind-mount)?
-> Depois do sync: `ssh davy-jones-hermes 'cd /home/tlandskron/hermes-architect && docker compose up -d <serviço>'`.
+> Depois do sync: `ssh davy-jones-hermes 'cd /home/usuario/hermes-architect && docker compose up -d <serviço>'`.
 
 Saída: `PASS`/`FAIL` (e `WARN`) por item + resumo. Exit code `0` = tudo ok.
 `WARN` é aviso e **não** derruba o CI (usado só para o estado do próprio CI — ver §5).
@@ -175,20 +175,20 @@ Saída: `PASS`/`FAIL` (e `WARN`) por item + resumo. Exit code `0` = tudo ok.
   porta publicada pelo Docker **não** passa pelo ufw (ver §5).
 - **Share SMB de documentos (eixo de estudos):** `smbd` é serviço **de host** (não container),
   config versionada em `ops/samba/smb.conf` e instalada pelo sync; share `documentos` →
-  `~/documents`, `valid users = tlandskron`, `hosts allow = 192.168.15.0/24`, sem guest. A suíte
+  `~/documents`, `valid users = usuario`, `hosts allow = 192.168.15.0/24`, sem guest. A suíte
   exige `smbd` ativo/habilitado, o share com o caminho certo, `hosts allow` restrito, 445 só da
   sub-rede e a árvore gravável. Os documentos **não** ficam no repo; entram no backup
   (`documents.tgz`).
 - **Worker de ingestão do eixo de estudos (Fase 2):** `tools/rag_ingest.py` roda **no host**
   (só stdlib) e `tools/owui_upload.py` roda **dentro** do container; o share entra no OWUI como
-  `/home/tlandskron/documents:/documents:ro` — a suíte falha se o mount sumir ou ficar gravável.
+  `/home/usuario/documents:/documents:ro` — a suíte falha se o mount sumir ou ficar gravável.
   Idempotência por **SHA-256** no `~/rag-state/manifest.csv` (10 colunas do desenho); o nome na
   citação é **achatado** (`tiradentes-bm-2026-prova.pdf`) e o caminho relativo fica no manifest.
   Falha vira cópia em `_rejeitados/` + `.motivo.txt` e o arquivo é **descartado** do OWUI (sem
   linha órfã em `file`); **o processo nunca apaga sozinho** — remoção é
   `rag_ingest.py --remover <sha256>`; `--dry-run` não escreve nada (é check da suíte).
   **Agendado a cada 15 min** (`ops/cron/rag-ingest.cron` → `/usr/local/bin/rag-ingest`, rodando
-  como `tlandskron`; `flock` impede que um lote grande seja atropelado) — a suíte cobra a entrada
+  como `usuario`; `flock` impede que um lote grande seja atropelado) — a suíte cobra a entrada
   do cron **e** uma execução recente (relatório com menos de 45 min). **Editar o arquivo no
   share é versão nova, não documento novo:** o mesmo caminho com outro SHA-256 sobe e a versão
   antiga **sai da base** (marcada `substituido` no manifest) — sem isso o RAG citaria a resposta
@@ -214,7 +214,7 @@ Saída: `PASS`/`FAIL` (e `WARN`) por item + resumo. Exit code `0` = tudo ok.
   (1–50) + 50 respostas**; ano incompleto fica `revisar` e `questoes conferir` **falha** — o
   importador **não inventa**; 2027 (gabarito sem prova publicada) fica `sem_prova`; a fonte de
   cada gabarito é registrada (`texto`/`txt`/`ocr-grade`/`ocr-tabela`). Cron `5,35` como
-  `tlandskron` (fora do minuto do `rag-ingest`) e publicação de
+  `usuario` (fora do minuto do `rag-ingest`) e publicação de
   `referencias/estatisticas-questoes.md`, que a suíte exige **ingerido** (SHA no manifest com
   estado `ok`) — é o que faz o chat responder contagem com citação. Limite real: alternativa que é
   figura no PDF (2020 Q29, 2023 Q47; 2022 Q48 inteira) não tem texto — a consulta mostra
@@ -225,10 +225,11 @@ Saída: `PASS`/`FAIL` (e `WARN`) por item + resumo. Exit code `0` = tudo ok.
   socket ou o `~/.ssh` voltarem a aparecer nos mounts.
 - **Espelho público sanitizado:** `ops/deploy/make-public-repo.ps1` gera o repo público a partir de
   `git archive HEAD` (arquivos rastreados), aplica a tabela de redação (e-mail pessoal, e-mail de
-  teste, caminho `C:\Users\...`) e **varre o resultado** antes do commit: nenhum valor do `.env`,
+  teste, caminho `C:\Users\...` e usuário Linux `usuario` → `usuario`) e **varre o resultado**
+  antes do commit: nenhum valor do `.env`,
   nenhum `.env`/`.db`/`.key`/`.pem`, nenhuma chave privada, nenhum endereço de e-mail público
   (`@gmail`) ou `API_SERVER_KEY` literal.
-  A suíte exige o script + o card + as 3 linhas da tabela + o snapshot por `git archive` (sem
+  A suíte exige o script + o card + as 4 regras da tabela + o snapshot por `git archive` (sem
   `git clone`) + a varredura. O espelho **não** herda histórico.
 - **Documentação e higiene do host (Fases 1 e 5):** a raiz é código; conhecimento vive em
   `docs/` (índice `docs/README.md`) e o sync leva a árvore inteira para o host. A suíte falha se
@@ -327,7 +328,7 @@ Saída: `PASS`/`FAIL` (e `WARN`) por item + resumo. Exit code `0` = tudo ok.
   (agende a cada minuto, veja o evento e restaure o horário).
 - **`sed` que troca só o primeiro campo do cron cria linha inválida:** `s|^\*/15 |* * * * * |`
   deixa **9 campos** e o cron **ignora a linha em silêncio** (nem erro no syslog). Prova de disparo
-  troca a **linha inteira** (`s|^\*/15 .*|* * * * * tlandskron /usr/local/bin/rag-ingest|`) e confere
+  troca a **linha inteira** (`s|^\*/15 .*|* * * * * usuario /usr/local/bin/rag-ingest|`) e confere
   com `grep` antes de esperar.
 - **`ufw allow` com rótulo que tem espaço:** iterar a lista de portas por espaço quebra o rótulo
   ("Nginx HTTP" vira duas regras → `ERROR: Bad port`) e o `set -e` aborta a política no meio.
@@ -451,10 +452,10 @@ Saída: `PASS`/`FAIL` (e `WARN`) por item + resumo. Exit code `0` = tudo ok.
   limpeza (scripts velhos, banco antigo) vira árvore sincronizada, entra no backup e escapa da
   varredura de segredo. Arquivar em `~/backups/legacy-scripts-<data>.tar.gz` (600, fora do glob
   `hermes-*` da retenção) e remover. O `.env` e o `webui.db.bak-*` **não** entram no arquivo.
-- **Senha do Samba é separada da do Linux:** `sudo smbpasswd -a tlandskron`. Depois de trocar,
+- **Senha do Samba é separada da do Linux:** `sudo smbpasswd -a usuario`. Depois de trocar,
   o Windows continua mandando a credencial velha em cache — `net use * /delete` antes de mapear
   de novo. O share usa `\\192.168.15.231\documentos` (IP; `disable netbios = yes`).
-- **Usuário Linux ≠ usuário Samba:** existir `tlandskron` no Linux não cria a credencial do share.
+- **Usuário Linux ≠ usuário Samba:** existir `usuario` no Linux não cria a credencial do share.
   Sem a entrada do `smbpasswd`, o login falha com "acesso negado" mesmo com o usuário certo (foi o
   estado depois da instalação: `smbd` ativo, share listável só depois do `smbpasswd`).
 - **`smb.conf` não aceita comentário depois do valor:** `server min protocol = SMB2_10  # ...`

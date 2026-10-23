@@ -41,7 +41,7 @@ docker exec nginx nginx -s reload             # só recarrega o certificado
 ## Renovar o certificado
 
 ```bash
-ssh davy-jones-hermes 'bash /home/tlandskron/hermes-architect/tools/make_tls_cert.sh --force --reload'
+ssh davy-jones-hermes 'bash /home/usuario/hermes-architect/tools/make_tls_cert.sh --force --reload'
 ```
 
 Depois: reimporte o certificado nas máquinas da LAN e confirme o fingerprint servido.

@@ -22,8 +22,8 @@
 # =============================================================================
 set -uo pipefail
 
-BACKUP="${1:-$(ls -1t /home/tlandskron/backups/hermes-*.tar.gz 2>/dev/null | head -1)}"
-REPO=/home/tlandskron/hermes-architect
+BACKUP="${1:-$(ls -1t /home/usuario/backups/hermes-*.tar.gz 2>/dev/null | head -1)}"
+REPO=/home/usuario/hermes-architect
 QPORT=16333
 OPORT=13000
 QNAME=hermesdrill-qdrant
