@@ -14,6 +14,22 @@ com GPU de 8 GB.
 > Este diretório é o **repositório de trabalho** (compartilhado por SMB). O host executa uma
 > cópia sincronizada em `/home/usuario/hermes-architect` — é essa cópia que o cron usa.
 
+## Mapa Davy-Jones + Medusa (referência)
+
+![Mapa completo da arquitetura Davy-Jones e Medusa](docs/assets/mapa-completo-arquitetura.jpg)
+
+> **Diagrama conceitual — não é o inventário operacional deste lab.** Esta é a versão atualizada
+> pelo projeto [Medusa](https://github.com/landeletronic/projeto-medusa-public), no commit
+> `4fbd067` de 2026-10-24. O “Davy-Jones” desenhado ali é o domínio de administração integrado
+> ao Medusa; não corresponde, componente por componente, ao host deste repositório. Por exemplo,
+> o mapa propõe infraestrutura compartilhada com RTX 5090, PostgreSQL/pgvector, Redis, Loki e
+> Alertmanager, enquanto este lab roda os **12 containers** da tabela abaixo numa RX 6600.
+> A suíte (`tests/verify_stack.sh`) continua sendo a fonte de verdade do estado real.
+>
+> A figura acima é 1536×1024, JPEG (625.007 bytes). A árvore sincronizada não aceita binário
+> acima de 1 MiB; por isso o **PNG original de 2.017.277 bytes** fica fora do git e do host, em
+> `archive/mapa-arquitetura-medusa-davy-jones.png` (cópia byte a byte, SHA-256 conferido).
+
 ## Estado atual (2026-10-23)
 
 | Item | Estado |
