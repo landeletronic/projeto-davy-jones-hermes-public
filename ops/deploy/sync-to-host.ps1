@@ -126,6 +126,12 @@ Assert-Ok 'instalação do banco de questões + cron'
 ssh $Target "sudo -u usuario /usr/local/bin/questoes"
 Assert-Ok 'primeiro import do banco de questões'
 
+# Tutor Tiradentes: o compose precisa já expor questoes.db como /data/questoes.db:ro.
+# O instalador roda dentro do OWUI para usar uma sessão humana curta sem tirar o
+# WEBUI_SECRET_KEY do container. A API nativa atualiza Function/modelo/ACL/base.
+ssh $Target "docker cp '$RemoteDir/ops/open-webui/tutor_tiradentes.py' open-webui:/tmp/tutor_tiradentes.py && docker cp '$RemoteDir/ops/bin/install_tutor_tiradentes.py' open-webui:/tmp/install_tutor_tiradentes.py && docker exec open-webui python /tmp/install_tutor_tiradentes.py"
+Assert-Ok 'instalação do Tutor Tiradentes no Open WebUI'
+
 # TLS: validade do certificado autoassinado (nada renova por você) — script + cron
 ssh $Target "sudo install -m 755 -o root -g root '$RemoteDir/ops/bin/tls_cert_metrics.sh' /usr/local/bin/tls-cert-metrics && sudo install -m 644 -o root -g root '$RemoteDir/ops/cron/tls-cert.cron' /etc/cron.d/tls-cert"
 Assert-Ok 'instalação da métrica de validade do TLS + cron'

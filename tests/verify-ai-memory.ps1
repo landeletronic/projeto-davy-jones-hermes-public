@@ -1,4 +1,4 @@
-# Verifica o acesso do Windows (B550M-AORUS-ELI) ao servidor ai-memory da estação Omarchy.
+# Verifica o acesso do Windows (B550M-AORUS-ELI) ao servidor ai-memory da estacao Omarchy.
 #
 # Uso:  powershell -File tests/verify-ai-memory.ps1
 #
@@ -142,6 +142,25 @@ if (Test-Path $cfgFile) {
   }
 } else {
   Bad "config ausente: $cfgFile"
+}
+
+# ---------------------------------------------------------------- 4b. compactacao (o ajuste fino)
+# O ai-memory NAO impede compactacao: quem compacta e o cliente OpenCode. O que se ajusta aqui
+# e quanto detalhe recente sobrevive (keep.tokens). O agente nao deve "consertar" isso sozinho:
+# keep abaixo de 15k (o default) e regressao; auto=false e escolha consciente, nao default.
+if ($cfg -and $cfg.compaction) {
+  $auto = $cfg.compaction.auto
+  $keep = 0
+  if ($cfg.compaction.keep -and $cfg.compaction.keep.tokens) { $keep = [int]$cfg.compaction.keep.tokens }
+  if ($auto -ne $false) { Ok "opencode.json: compaction.auto = $auto (compactacao automatica ligada)" }
+  else { Warn 'opencode.json: compaction.auto = false (compactacao so manual; verifique se foi intencional)' }
+
+  if ($keep -ge 24000) { Ok "opencode.json: compaction.keep.tokens = $keep (>= 24000, detalhe recente preservado)" }
+  elseif ($keep -ge 15000) { Warn "opencode.json: compaction.keep.tokens = $keep (abaixo do alvo 24000; ainda >= default 15000)" }
+  elseif ($keep -gt 0) { Bad "opencode.json: compaction.keep.tokens = $keep (abaixo do default 15000)" }
+  else { Warn 'opencode.json: compaction.keep.tokens ausente (default 15000)' }
+} else {
+  Warn 'opencode.json: sem bloco "compaction" (defaults: auto=true, keep=15000)'
 }
 
 # ---------------------------------------------------------------- 5. plugin de captura (hooks)

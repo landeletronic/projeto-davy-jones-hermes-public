@@ -1051,6 +1051,69 @@ fi
 rm -rf "$qsb"
 
 # ---------------------------------------------------------------------------
+section "TUTOR TIRADENTES — modelo pedagógico determinístico"
+tutor_mount=$(docker inspect -f '{{range .Mounts}}{{if eq .Destination "/data/questoes.db"}}{{.Source}}|{{.RW}}{{end}}{{end}}' open-webui 2>/dev/null)
+if [ "$tutor_mount" = "/home/usuario/rag-state/questoes.db|false" ]; then
+  ok "Tutor: questoes.db montado no Open WebUI somente leitura"
+else
+  bad "Tutor: mount esperado /home/usuario/rag-state/questoes.db -> /data/questoes.db:ro (atual: $tutor_mount)"
+fi
+
+tutor_state=$(docker exec -i open-webui python - <<'PY' 2>/dev/null
+import hashlib, json, sqlite3
+c = sqlite3.connect('/app/backend/data/webui.db')
+f = c.execute("select name,content,is_active,is_global from function where id='tutor_tiradentes'").fetchone()
+m = c.execute("select name,meta,is_active from model where id='tutor_tiradentes'").fetchone()
+mg = c.execute("select count(*) from access_grant where resource_type='model' and resource_id='tutor_tiradentes' and principal_type='user' and principal_id='*' and permission='read'").fetchone()[0]
+kg = c.execute("select count(*) from access_grant where resource_type='knowledge' and resource_id='60d58cd2-29b9-424d-a483-c9d5cc68f77c' and principal_type='user' and principal_id='*' and permission='read'").fetchone()[0]
+print('FUNCTION=' + ('ok' if f and f[0] == 'Tutor Tiradentes — 9º ano' and f[2] == 1 and f[3] == 0 else 'bad'))
+print('MODEL=' + ('ok' if m and m[0] == 'Tutor Tiradentes — 9º ano' and m[2] == 1 else 'bad'))
+meta = json.loads(m[1]) if m else {}
+knowledge = meta.get('knowledge') or []
+print('KNOWLEDGE=' + ('ok' if any(k.get('id') == '60d58cd2-29b9-424d-a483-c9d5cc68f77c' for k in knowledge) else 'bad'))
+print(f'GRANTS={mg}/{kg}')
+print('SOURCE_SHA=' + (hashlib.sha256(f[1].encode()).hexdigest() if f else 'missing'))
+try:
+    ro = sqlite3.connect('file:/data/questoes.db?mode=ro', uri=True)
+    ro.execute('PRAGMA query_only=ON')
+    ro.execute('SELECT count(*) FROM questao').fetchone()
+except sqlite3.Error:
+    print('READONLY=bad')
+else:
+    try:
+        ro.execute('CREATE TABLE _tutor_write_must_fail (x)')
+        print('READONLY=bad')
+    except sqlite3.OperationalError:
+        print('READONLY=ok')
+PY
+)
+if has "$tutor_state" "FUNCTION=ok"; then ok "Tutor: Pipe ativo e não global com nome amigável"; else bad "Tutor: Function ausente ou incorreta"; fi
+if has "$tutor_state" "MODEL=ok"; then ok "Tutor: modelo ativo com nome amigável"; else bad "Tutor: modelo ausente/inativo"; fi
+if has "$tutor_state" "KNOWLEDGE=ok"; then ok "Tutor: base Tiradentes BM anexada como apoio"; else bad "Tutor: base Tiradentes BM não anexada"; fi
+if has "$tutor_state" "GRANTS=1/1"; then ok "Tutor: modelo e base legíveis por usuário comum"; else bad "Tutor: ACL pública de leitura incompleta"; fi
+if has "$tutor_state" "READONLY=ok"; then ok "Tutor: SQLite recusa escrita dentro do container"; else bad "Tutor: SQLite não está efetivamente somente leitura"; fi
+
+tutor_root=$(cd "$(dirname "${BASH_SOURCE[0]}")" 2>/dev/null && pwd)
+[ -f "$tutor_root/test_tutor_pipe.py" ] || tutor_root=/home/usuario/hermes-architect/tests
+tutor_source=/home/usuario/hermes-architect/ops/open-webui/tutor_tiradentes.py
+if [ -f "$tutor_source" ]; then
+  expected_sha=$(sha256sum "$tutor_source" | awk '{print $1}')
+  if has "$tutor_state" "SOURCE_SHA=$expected_sha"; then ok "Tutor: Function sem deriva em relação ao repo"; else bad "Tutor: código da Function diverge do repo (rode o sync)"; fi
+else
+  bad "Tutor: fonte versionada ausente"
+fi
+if python3 "$tutor_root/test_tutor_pipe.py" >/dev/null 2>&1; then
+  ok "Tutor: regressões locais (parser, fail-closed, RAG e read-only)"
+else
+  bad "Tutor: testes locais falharam"
+fi
+if docker exec -i open-webui python - < "$tutor_root/smoke_tutor.py" >/dev/null 2>&1; then
+  ok "Tutor: usuário comum vê o modelo e questão inexistente falha fechado"
+else
+  bad "Tutor: smoke como usuário comum falhou"
+fi
+
+# ---------------------------------------------------------------------------
 section "FASE 6.4 — Backup e pinagem"
 if [ -x /usr/local/bin/hermes-backup ]; then ok "script hermes-backup instalado"; else bad "hermes-backup ausente"; fi
 if [ -f /etc/cron.d/hermes-backup ]; then ok "cron de backup diário"; else bad "cron de backup ausente"; fi

@@ -52,6 +52,7 @@ conserta. **Todo documento desta árvore está listado abaixo** — a suíte fal
 | [`runbooks/scripts/pull-backups.md`](runbooks/scripts/pull-backups.md) | diário (Windows → cópia local) |
 | [`runbooks/scripts/rag_ingest.md`](runbooks/scripts/rag_ingest.md) | a cada 15 min (share de documentos → RAG) |
 | [`runbooks/scripts/questoes.md`](runbooks/scripts/questoes.md) | a cada 30 min (provas/gabaritos → banco de questões) |
+| [`runbooks/scripts/install_tutor_tiradentes.md`](runbooks/scripts/install_tutor_tiradentes.md) | no deploy (Pipe/modelo amigável → Open WebUI) |
 | [`runbooks/scripts/tools.md`](runbooks/scripts/tools.md) | índice dos scripts de `tools/` (sob demanda) |
 | [`runbooks/scripts/make-public-repo.md`](runbooks/scripts/make-public-repo.md) | sob demanda (gera/publica o espelho público sanitizado) |
 | [`runbooks/scripts/inventario-proxmox.md`](runbooks/scripts/inventario-proxmox.md) | sob demanda (inventário de hardware do servidor físico, disparado do Windows) |
@@ -76,6 +77,7 @@ conserta. **Todo documento desta árvore está listado abaixo** — a suíte fal
 | [`plans/tarefas_mentais_davy-jones-hermas.md`](plans/tarefas_mentais_davy-jones-hermas.md) | rascunho do usuário para o **eixo de estudos** (em andamento) |
 | [`plans/DESENHO-INBOX-DOCUMENTS.md`](plans/DESENHO-INBOX-DOCUMENTS.md) | inbox `documents/` (share SMB no host) + ingestão na RAG — árvore criada, SMB pendente |
 | [`plans/BANCO-DE-QUESTOES.md`](plans/BANCO-DE-QUESTOES.md) | banco de questões (Fase 5 do eixo): medições, decisões, desenho e limites |
+| [`plans/UPGRADE-OMV8-TRIXIE.md`](plans/UPGRADE-OMV8-TRIXIE.md) | upgrade OMV 7/Debian 12 → OMV 8/trixie no host `openmediavault` — **executado em 2026-10-21** (Debian 13.7 / OMV 8.5.12-1; §0 traz resultado, desvios e achados) |
 | [`reports/RELATORIO-LACUNAS.md`](reports/RELATORIO-LACUNAS.md) | backlog de endurecimento #1–#10 com status |
 | [`reports/RELATORIO-TECNICO-DAVY-JONES-GPT.md`](reports/RELATORIO-TECNICO-DAVY-JONES-GPT.md) | relatório técnico da trilha paralela |
 

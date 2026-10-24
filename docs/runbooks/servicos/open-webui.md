@@ -7,6 +7,7 @@
 | Dados | volume `open_webui_data` (`webui.db` = usuários, conversas, knowledge) |
 | Conexão | `http://hermes:8642/v1` + header `X-Hermes-Session-Key: {{USER_EMAIL}}` |
 | Vetores | `VECTOR_DB=qdrant`, coleções com prefixo `owui_` |
+| Tutor | `Tutor Tiradentes — 9º ano` (Pipe `tutor_tiradentes` + SQLite somente leitura) |
 
 ## Verificar
 
@@ -39,6 +40,9 @@ cd /home/usuario/hermes-architect && docker compose restart open-webui
 - **Sessão JWT recusada** → `/api/v1/auths/` aceita só token de sessão humana (`typ=session`);
   API key **não** vale como sessão.
 - **`docker exec` não vê `WEBUI_SECRET_KEY`** → é gerada no start; leia de `/proc/1/environ`.
+- **Tutor não aparece / falha em toda questão** → veja
+  [`install_tutor_tiradentes.py`](../scripts/install_tutor_tiradentes.md). O compose precisa montar
+  `~/rag-state/questoes.db` em `/data/questoes.db:ro`; `restart` não adiciona bind-mount novo.
 
 ## Backup
 

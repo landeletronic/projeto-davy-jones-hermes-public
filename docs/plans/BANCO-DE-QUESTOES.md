@@ -144,10 +144,21 @@ transforma isso em FAIL. Ano sem prova (2027) é `sem_prova`, não erro.
   errar tópico é pior do que não ter.
 - **`sympy`**: não verifica contas ainda (backlog).
 
-## 7. Próximos passos (quando fizer sentido)
+## 7. Tutor no Open WebUI (2026-10-24)
+
+O modelo **Tutor Tiradentes — 9º ano** fecha a lacuna da consulta exata no chat. Ele é um Pipe
+nativo do Open WebUI: toda mensagem passa pelo código determinístico antes do LLM, que consulta
+`questoes.db` somente leitura e valida a linha completa. Só depois chama o modelo local para a
+explicação pedagógica. A coleção `Tiradentes BM` permanece anexada como apoio para conceitos, mas
+não pode escolher nem substituir a questão estruturada.
+
+Implementação e operação: `ops/open-webui/tutor_tiradentes.py`,
+`ops/bin/install_tutor_tiradentes.py` e
+[`../runbooks/scripts/install_tutor_tiradentes.md`](../runbooks/scripts/install_tutor_tiradentes.md).
+
+## 8. Próximos passos (quando fizer sentido)
 
 1. **Tópicos** por questão, com vocabulário fechado e revisão humana (não automática).
 2. **`sympy`** para conferir a resposta de questões de matemática que sejam expressão/equação.
-3. **Consulta no chat** para *"resposta da Q26"*: hoje o banco responde por CLI e as **contagens**
-   vão ao RAG via `.md`; expor consulta exata ao chat exigiria ferramenta no gateway (o chat de
-   estudo usa a conexão direta no Ollama, que não chama ferramenta).
+3. **Revisão humana de tópicos** para tornar a escolha por assunto mais abrangente que a busca
+   literal segura usada hoje pelo Tutor.

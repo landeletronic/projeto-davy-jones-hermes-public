@@ -321,13 +321,19 @@ instalar, elas passam a aparecer na lista de skills disponíveis da sessão (nã
 | A chave `aim_` **em texto claro** no terminal | `install-mcp`/`install-hooks` **sem** `--apply` (ou com ele) imprimem o snippet `Authorization: Bearer aim_…` no stdout — a proteção de segredos que motivou a §3 **não** cobre a saída do processo | nunca rodar o preview em terminal gravado/logado; se vazar, **rotacionar** (§3.1) |
 | `ai-memory search` falha com `could not reach http://127.0.0.1:49374` | o CLI **não** herda o escopo `User` no processo do agente, e usou o default de loopback + rota `/admin/*` (403 para chave de máquina) | no CLI, exportar `AI_MEMORY_SERVER_URL`/`AI_MEMORY_AUTH_TOKEN` na sessão; a **consulta** de verdade é pelo MCP |
 | MCP já funciona sem reiniciar — e a captura **também** | o OpenCode recarrega config e plugins a quente | o aviso do instalador ("restart for it to take effect") é conservador: aqui a sessão em curso apareceu no servidor 2 min depois, com o `cwd` do Windows. Confirme pelo **efeito**, não pelo aviso |
+| `curl -u opencode:<service.json> /api/config` devolve a chave `aim_` **em texto claro** | a config efetiva inclui `mcp.servers.ai-memory.headers.Authorization` | é ótimo para conferir `compaction` em vigor, **péssimo** para colar em relatório/log: filtre com regex e nunca imprima a resposta inteira |
 
 ### 11.3 Verificação reutilizável (Windows)
 
 ```powershell
 # cliente ai-memory desta máquina (read-only; não imprime segredos)
-powershell -File tests\verify-ai-memory.ps1     # esperado: PASS=15 / FAIL=0 / WARN=0
+powershell -File tests\verify-ai-memory.ps1     # esperado: PASS=17 / FAIL=0 / WARN=0
 ```
+
+Desde 2026-10-23 o script também confere o bloco `compaction` (o ajuste fino de §11.6):
+`auto` ligado e `keep.tokens >= 24000` viram PASS; ausência do bloco é WARN; `keep` abaixo do
+default de 15k é FAIL — assim uma edição futura do `opencode.json` não desfaz o ajuste em
+silêncio.
 
 ### 11.4 Como provar que é o **servidor da Omarchy** (e não um servidor local)
 
@@ -360,20 +366,164 @@ ai-memory list-projects # tem de listar default/davy-jones-hermes
 > ⚠️ O arquivo `%LOCALAPPDATA%\ai-memory\auth-token` guarda a chave em **texto claro** no
 > disco (é o desenho da ferramenta). Mais um motivo para rotacionar a chave abaixo.
 
-### 11.5 Pendência deixada aberta
+### 11.6 Compactação: o que o ai-memory faz e o que **não** faz
 
-A chave desta máquina apareceu em texto claro na saída do preview (§11.2). Enquanto ela
-não for rotacionada, considere-a comprometida:
+Confusão comum (e cara): achar que instalar o ai-memory acaba com a compactação. **Não acaba**, e
+nenhuma memória externa acaba — compactação é do **cliente** (`compaction`), disparada quando a
+conversa chega perto do limite de contexto do modelo. O ai-memory **guarda o que saiu do
+contexto**, não aumenta o contexto.
 
-```bash
-# na estação Omarchy (token raiz):
-ai-memory api-key rotate 01a155ab-a7ce-7a91-8825-54dabf284cd9
+| ai-memory faz | ai-memory não faz |
+|---|---|
+| captura prompts, tool calls e respostas no servidor central | não aumenta a janela de contexto |
+| gera **handoff** no fim da sessão, consumido pela próxima | não substitui a compactação do cliente |
+| registra a compactação (`pre-compact`) e serve o **recap** para `reload context` | não recupera sozinho o que já foi descartado |
+| consolida conhecimento durável em páginas por projeto | não é um "balde único" compartilhado entre projetos |
+
+Escopo: a config (`~/.config/opencode/opencode.json`), o plugin e as skills são **globais**
+(valem para todo projeto aberto no OpenCode); a memória é **escopada por projeto**
+(`workspace + project`, resolvido pelo `.ai-memory.toml`).
+
+Ajuste aplicado em 2026-10-23 (preferência, reversível em 1 linha; backup
+`opencode.json.bak-<timestamp>` feito antes):
+
+```jsonc
+{
+  "compaction": {
+    "auto": true,
+    "keep": { "tokens": 24000 }   // padrão 15000: quanto de conversa recente sobrevive ao resumo
+  }
+}
 ```
 
-Depois da rotação, atualizar `AI_MEMORY_AUTH_TOKEN` (escopo `User`) **e** o header em
-`%USERPROFILE%\.config\opencode\opencode.json`, e rodar de novo o `verify-ai-memory.ps1`
-(o check `Authorization difere da variável de ambiente` existe justamente para pegar
-rotação pela metade).
+`auto: false` só sob decisão explícita (compactar à mão e/ou bater no limite).
+
+### 11.7 Como provar que o hook de compactação funciona (sessão descartável)
+
+`pre-compact` **não** sai de `session-start`/`stop`: o plugin só o emite em
+`session.compaction.started` (plugin, ~linha 1319 → `postPreCompact`). Um erro de medição
+clássico é concluir "está quebrado" **antes** de a compactação acontecer — foi o que aconteceu
+aqui em 2026-10-23 (a checagem foi feita 13 min antes do evento).
+
+Receita (não toca na sessão em curso):
+
+```powershell
+# 0) credencial do servidor local do OpenCode (Basic auth; não imprimir)
+$pw  = (Get-Content "$env:USERPROFILE\.config\opencode\service.json" -Raw | ConvertFrom-Json).password
+$env:OPENCODE_API = (opencode service status).Trim()      # ex.: http://127.0.0.1:28894
+
+# 1) sessão descartável NO diretório do projeto (para cair no mesmo escopo)
+opencode api post /api/session --data '{\"title\":\"smoke-compaction-hook\",\"location\":{\"directory\":\"C:/caminho/do/projeto\"}}'
+
+# 2) histórico mínimo — sessão vazia responde "Nothing to compact yet" e não compacta.
+#    Daqui em diante use curl: o CLI no Windows quebra o JSON com espaços.
+'{"text":"Responda apenas com a palavra: ok"}' | Set-Content "$env:TEMP\opencode\prompt.json" -Encoding ASCII -NoNewline
+curl.exe --noproxy '*' -s -u "opencode:$pw" -X POST "$env:OPENCODE_API/api/session/<SID>/prompt" `
+  -H "Content-Type: application/json" --data-binary "@$env:TEMP\opencode\prompt.json"
+
+# 3) compactar
+'{}' | Set-Content "$env:TEMP\opencode\compact.json" -Encoding ASCII -NoNewline
+curl.exe --noproxy '*' -s -u "opencode:$pw" -X POST "$env:OPENCODE_API/api/session/<SID>/compact" `
+  -H "Content-Type: application/json" --data-binary "@$env:TEMP\opencode\compact.json"
+
+# 4) conferir as duas pontas
+#    OpenCode: GET /api/session/<SID>/message?type=compaction   -> status "completed"
+#    ai-memory: memory_read_session_observations (kinds ["pre-compact"]) -> tem de existir
+#    recap:     GET <AI_MEMORY_SERVER_URL>/recap?agent=open-code&session_id=<UUID>
+#                   &workspace=default&project=davy-jones-hermes
+```
+
+Resultado medido em 2026-10-23 (`B550M-AORUS-ELI`, OpenCode 2.0.32):
+
+| Prova | Resultado |
+|---|---|
+| compactação real da sessão em curso | `09:06:10` local, `auto`, `completed` |
+| `pre-compact` no ai-memory | `12:06:15Z` — **5 s depois**, no mesmo minuto |
+| `pre-compact` na sessão descartável | 2 registros (um da tentativa vazia, um da compactação real) |
+| `GET /recap` da sessão descartável | recap com o prompt pré-compactação |
+| `GET /recap` da sessão em curso | recap com os 4 prompts até a compactação |
+
+**Conclusão: o hook funciona.** Não havia bug do OpenCode para reportar.
+
+Duas armadilhas de medição, para não repetir:
+
+1. **`session.compaction.started` não aparece em `GET /api/event`** (o SSE só transmite os
+   `session.*` de execução/texto/ferramenta). O plugin recebe o evento pelo **barramento
+   interno**, então ausência no SSE **não** prova ausência do gatilho. Meça pelo **efeito**
+   (`pre-compact` no ai-memory), não pelo stream.
+2. **Sessão vazia não compacta** — `compaction.unavailable: Nothing to compact yet`. Sem
+   `user-prompt` no histórico o teste dá falso negativo.
+
+Limpeza do teste: `opencode session delete <SID>` e, se quiser zerar o rastro no wiki,
+`memory_delete_page` em `sessions/<uuid>.md`.
+
+### 11.8 Rotação da chave (pendente) — procedimento de duas pontas
+
+A chave desta máquina apareceu em texto claro na saída do preview (§11.2) e **também** pode ser
+lida em `GET /api/config` do servidor **local** do OpenCode (§11.2). Enquanto não for rotacionada,
+considere-a comprometida.
+
+Escopo real da exposição, medido em 2026-10-23 (para não superestimar nem subestimar):
+
+| Vetor | Alcance |
+|---|---|
+| stdout de `ai-memory install-mcp`/`install-hooks` | qualquer log/transcript que capture o terminal |
+| `GET /api/config` do OpenCode local | **só loopback** (bind `127.0.0.1:28894`), exige Basic auth com a senha de `%USERPROFILE%\.config\opencode\service.json`; sem credencial = **401**; via IP da LAN = conexão recusada |
+| arquivos locais | `%LOCALAPPDATA%\ai-memory\auth-token` (texto claro, desenho da ferramenta) e o header do `opencode.json` |
+
+Ou seja: **não** é acessível da rede — é leitura local (qualquer processo do mesmo usuário) e
+vazamento por log. A rotação continua valendo porque a chave já esteve em texto claro em saída de
+terminal.
+
+A rotação é **de duas pontas** e a ordem importa (rotacionar no servidor primeiro derruba o
+cliente até a segunda ponta):
+
+```powershell
+# 1) NA ESTAÇÃO OMARCHY, com o token raiz:
+#    ai-memory api-key rotate 01a155ab-a7ce-7a91-8825-54dabf284cd9
+#    a chave NOVA só aparece nessa saída — copie para o clipboard desta máquina.
+#    (se o `rotate` não imprimir a chave: `ai-memory api-key add --username <user> --label b550m-aorus-elite`
+#     imprime uma credencial nova uma única vez; depois `ai-memory api-key revoke <ID antigo>`.)
+
+# 2) NO WINDOWS (previa: nao escreve nada)
+powershell -File tools\rotate-ai-memory-key.ps1
+
+# 3) aplicando (le a chave do clipboard; atualiza env User + header do opencode.json + cache do CLI,
+#    faz backup .bak-<timestamp> e roda o verify-ai-memory.ps1 no fim)
+powershell -File tools\rotate-ai-memory-key.ps1 -Apply -ClearClipboard
+```
+
+Duas pegadinhas medidas em 2026-10-23 (o dono do lab caiu nas duas):
+
+| Sintoma | Causa | Ação |
+|---|---|---|
+| **exit 2, saída vazia**, nem o cabeçalho aparece | `- ClearClipboard` **com espaço** depois do `-`: o `powershell.exe -File` recusa a linha de comando **antes** de executar o script | não separe a flag: `-Apply -ClearClipboard` |
+| `NADA A FAZER: o clipboard tem a MESMA chave` na prévia | o clipboard ainda tem a chave **antiga** — a rotação no servidor (passo 1) não foi feita, ou a chave nova não foi copiada | rodar o passo 1 primeiro (`api-key rotate`), copiar a chave nova |
+| `Set-Clipboard : Valor não pode ser nulo` **no fim** do `-Apply -ClearClipboard` | PS 5.1 não aceita `Set-Clipboard -Value ''`; com `ErrorActionPreference='Stop'` o script aborta **depois** de aplicar (os três `ok` já saíram) e **antes** da conferência final | corrigido no script (usa um espaço + fallback `clip.exe`); se aparecer de novo, os três lugares já estão gravados — rode `verify-ai-memory.ps1` à mão |
+
+**Como provar que a rotação pegou** (medido em 2026-10-23, rotação real concluída):
+
+| Prova | Resultado esperado |
+|---|---|
+| `env User` = header do `opencode.json` = `auth-token` | `True` (os três iguais) |
+| handshake `/mcp` com a chave **antiga** | **401** (morreu na hora) |
+| handshake `/mcp` com a chave **nova** | **200** |
+| `verify-ai-memory.ps1` | PASS=17 / FAIL=0 |
+| `opencode mcp list` / uma tool MCP na sessão aberta | `connected` — o OpenCode recarrega o header a quente |
+
+Depois de confirmar, apague os `.bak-*` (contêm a chave antiga) e **limpe o clipboard** — inclusive o
+histórico do **Win+V**, que é um lugar onde o segredo fica e que nenhum script limpa
+(Configurações → Área de Transferência → Limpar).
+
+
+O script **nunca imprime a chave** (só tamanho/prefixo), recusa chave sem `aim_`, faz prévia por
+padrão e falha se os três lugares não ficarem iguais. Ele existe porque a chave vive em **três**
+pontos desta máquina e trocar um só deixa o cliente metade velho/metade novo — o `WARN` do
+`verify-ai-memory.ps1` (`a chave do header difere da variável de ambiente`) é a rede de segurança.
+
+> Depois de rotacionar, apague os `opencode.json.bak-*` antigos: eles guardam a chave **anterior**
+> (inofensiva depois da rotação, mas ainda uma cópia do segredo em disco).
+
 
 ---
 

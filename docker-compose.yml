@@ -148,6 +148,9 @@ services:
       # O worker (tools/rag_ingest.py) aponta o uploader para /documents/<caminho>,
       # sem copiar arquivo nenhum para dentro do container.
       - /home/usuario/documents:/documents:ro
+      # Tutor Tiradentes: consulta exata por ano/número, sem dar shell à usuária.
+      # O Pipe abre com SQLite mode=ro + PRAGMA query_only; o mount reforça no SO.
+      - /home/usuario/rag-state/questoes.db:/data/questoes.db:ro
     environment:
       OLLAMA_BASE_URL: http://ollama:11434
       WEBUI_AUTH: "true" # ANTES era "false" — decisão C exige login e-mail+senha
