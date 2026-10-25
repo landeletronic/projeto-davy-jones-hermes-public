@@ -21,10 +21,10 @@ senha. Em seguida, comece uma conversa nova.
 
 ![Ilustração da tela do Tutor Tiradentes com o seletor de modelo, a conversa e a caixa de mensagem](../assets/tutor-tiradentes-tela.svg)
 
-1. No alto da tela, abra a lista de modelos.
-2. Escolha **Tutor Tiradentes — 9º ano**.
-3. Escreva sua pergunta na caixa de mensagem.
-4. Envie e aguarde a resposta. A primeira resposta pode demorar um pouco mais.
+1. Confira se aparece **Tutor Tiradentes — 9º ano** na tela e no seletor da caixa de mensagem.
+2. Clique na caixa de mensagem e escreva sua pergunta.
+3. Pressione `Enter` para enviar e aguarde a resposta. A primeira resposta pode demorar um pouco
+   mais.
 
 > **Atenção:** escolha o nome completo **Tutor Tiradentes — 9º ano**. Não escolha diretamente
 > `qwen3:8b-chat-16k`.

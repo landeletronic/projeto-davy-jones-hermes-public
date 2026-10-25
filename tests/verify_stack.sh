@@ -1113,6 +1113,19 @@ else
   bad "Tutor: smoke como usuário comum falhou"
 fi
 
+# Regressão do guia visual: a captura real chegou a ser salva com caracteres
+# substituídos por '?' ("orienta??es", "tr?s", "9? ano"). O XML continuava
+# válido e o erro passava silencioso; confira o texto UTF-8 que a aluna enxerga.
+tutor_svg=/home/usuario/hermes-architect/docs/assets/tutor-tiradentes-tela.svg
+if [ -f "$tutor_svg" ] \
+   && grep -qF 'Tela real do Tutor Tiradentes com orientações' "$tutor_svg" \
+   && grep -qF 'com três setas' "$tutor_svg" \
+   && grep -qF 'Tutor Tiradentes — 9º ano' "$tutor_svg"; then
+  ok "Tutor: guia visual preserva acentos em UTF-8"
+else
+  bad "Tutor: guia visual ausente ou com acentos corrompidos"
+fi
+
 # ---------------------------------------------------------------------------
 section "FASE 6.4 — Backup e pinagem"
 if [ -x /usr/local/bin/hermes-backup ]; then ok "script hermes-backup instalado"; else bad "hermes-backup ausente"; fi
