@@ -219,6 +219,15 @@ Saída: `PASS`/`FAIL` (e `WARN`) por item + resumo. Exit code `0` = tudo ok.
   estado `ok`) — é o que faz o chat responder contagem com citação. Limite real: alternativa que é
   figura no PDF (2020 Q29, 2023 Q47; 2022 Q48 inteira) não tem texto — a consulta mostra
   `[figura/tabela no PDF]`.
+- **Apostilas Tiradentes (modelo pedagógico separado):** a base vetorial exclusiva
+  `Apostilas Tiradentes` contém todos e somente os arquivos de
+  `concurso/tiradentes-bm/apostilas/`; o modelo/Pipe `apostilas_tiradentes` é visível a usuário
+  comum e usa `qwen3:8b-chat-16k`. Explica, resume, localiza exercícios, cria atividades inéditas,
+  dá dicas e corrige tentativas; sempre identifica as fontes, rotula conteúdo criado pela IA e
+  falha fechado sem recuperação suficiente. O **Tutor Tiradentes — 9º ano** continua independente
+  para questões oficiais por ano/número. O instalador idempotente
+  `ops/bin/install_apostilas_tiradentes.py` vincula os mesmos `file_id` sem duplicar PDFs; arquivos
+  novos dentro de `apostilas/` recebem a base extra pelo `rag-ingest`.
 - **Gateway sem privilégio de host (#4):** `hermes-agent` **não** monta `/var/run/docker.sock`
   nem `~/.ssh`; a ferramenta `shell` roda local no container (sem alcance ao Docker do host) e a
   API `:8642` fica **fora da LAN** (só loopback e a rede interna do OWUI). A suíte falha se o

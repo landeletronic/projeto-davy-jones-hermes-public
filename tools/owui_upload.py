@@ -157,6 +157,37 @@ def wait_processed(fid, timeout):
     return status, data, round(time.time() - t0, 1)
 
 
+def add_file_to_kb(kb_name, fid):
+    """Garante o vínculo/vetores do mesmo arquivo em uma knowledge base."""
+    kid, created = get_or_create_kb(kb_name)
+    c = db()
+    present = c.execute(
+        'select count(*) from knowledge_file where knowledge_id=? and file_id=?', (kid, fid)
+    ).fetchone()[0]
+    c.close()
+    elapsed = 0.0
+    if not present:
+        t0 = time.time()
+        r = requests.post(
+            f'{BASE}/api/v1/knowledge/{kid}/file/add',
+            headers=H,
+            json={'file_id': fid},
+            timeout=3600,
+        )
+        elapsed = round(time.time() - t0, 1)
+        if not r.ok:
+            fail(f'file/add na base "{kb_name}" HTTP {r.status_code}: {r.text[:600]}')
+        print(f'== file/add em "{kb_name}": ok em {elapsed}s', file=sys.stderr)
+    c = db()
+    linked = c.execute(
+        'select count(*) from knowledge_file where knowledge_id=? and file_id=?', (kid, fid)
+    ).fetchone()[0]
+    c.close()
+    if not linked:
+        fail(f'arquivo processado mas não vinculado à base "{kb_name}"')
+    return {'id': kid, 'name': kb_name, 'created': created, 'add_s': elapsed}
+
+
 def descartar(fid):
     """Remove um arquivo que NÃO entrou na base (upload sem uso = resto no banco).
 
@@ -185,9 +216,6 @@ def ingest(args):
     if size == 0:
         fail('arquivo vazio (0 bytes)')
 
-    kid, created_kb = get_or_create_kb(args.kb)
-    print(f'== base "{args.kb}": {kid} ({"criada" if created_kb else "já existia"})', file=sys.stderr)
-
     mime = MIME.get(os.path.splitext(path)[1].lower(), 'application/octet-stream')
     t0 = time.time()
     with open(path, 'rb') as fh:
@@ -211,51 +239,31 @@ def ingest(args):
         descartar(fid)
         fail(f'processamento não concluiu ({status}): {detail}')
 
-    c = db()
-    present = c.execute(
-        'select count(*) from knowledge_file where knowledge_id=? and file_id=?', (kid, fid)
-    ).fetchone()[0]
-    c.close()
-    file_add_s = 0.0
-    if not present:
-        t0 = time.time()
-        r = requests.post(
-            f'{BASE}/api/v1/knowledge/{kid}/file/add',
-            headers=H,
-            json={'file_id': fid},
-            timeout=3600,
-        )
-        file_add_s = round(time.time() - t0, 1)
-        if not r.ok:
-            descartar(fid)
-            fail(f'file/add HTTP {r.status_code}: {r.text[:600]}')
-        print(f'== file/add (chunk + bge-m3 + Qdrant): ok em {file_add_s}s', file=sys.stderr)
-
-    c = db()
-    linked = c.execute(
-        'select count(*) from knowledge_file where knowledge_id=? and file_id=?', (kid, fid)
-    ).fetchone()[0]
-    c.close()
-    if not linked:
+    try:
+        primary = add_file_to_kb(args.kb, fid)
+        extras = [add_file_to_kb(name, fid) for name in dict.fromkeys(args.kb_extra)
+                  if name and name != args.kb]
+    except SystemExit:
         descartar(fid)
-        fail('arquivo processado mas a linha knowledge_file não existe (RAG não enxerga)')
+        raise
 
-    points = points_for(kid)
+    points = points_for(primary['id'])
     chars = chars_extracted(fid)
     out = {
         'ok': True,
         'name': args.name,
         'file_id': fid,
-        'knowledge_id': kid,
-        'kb_created': created_kb,
+        'knowledge_id': primary['id'],
+        'kb_created': primary['created'],
         'kb': args.kb,
+        'extra_knowledge': extras,
         'status': status,
         'bytes': size,
         'chars': chars,
         'points': points,
         'upload_s': upload_s,
         'process_s': wait_s,
-        'file_add_s': file_add_s,
+        'file_add_s': primary['add_s'],
     }
     print('RESULT ' + json.dumps(out, ensure_ascii=False))
 
@@ -305,6 +313,8 @@ def main():
     p.add_argument('--path', help='caminho do arquivo DENTRO do container (/documents/...)')
     p.add_argument('--name', help='nome que aparece na citação (nome achatado)')
     p.add_argument('--kb', default='Tiradentes BM', help='nome da base no OWUI')
+    p.add_argument('--kb-extra', action='append', default=[],
+                   help='base adicional que recebe o mesmo arquivo (repetível)')
     p.add_argument('--admin-email', default='admin@example.com')
     p.add_argument('--timeout', type=int, default=1800, help='espera do Docling (s)')
     p.add_argument('--remove-file', metavar='FILE_ID', help='apaga o arquivo e o vínculo')

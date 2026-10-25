@@ -62,6 +62,7 @@ COLS = [
 BASES = {'tiradentes-bm': 'Tiradentes BM'}
 BASE_DEFAULT = 'Tiradentes BM'
 SLUG_DEFAULT = 'tiradentes-bm'
+APOSTILAS_BASE = 'Apostilas Tiradentes'
 
 SUFIXOS = {'.pdf', '.docx', '.txt', '.md'}
 TIPOS = ('edital', 'prova', 'gabarito', 'resumo')
@@ -193,6 +194,14 @@ def classificar(rel):
     return slug, base, ano, tipo
 
 
+def bases_extras(rel):
+    """Bases temáticas adicionais derivadas do caminho, sem heurística de conteúdo."""
+    partes = rel.replace('\\', '/').split('/')
+    if len(partes) >= 4 and partes[:3] == ['concurso', 'tiradentes-bm', 'apostilas']:
+        return [APOSTILAS_BASE]
+    return []
+
+
 def aviso_extracao(sufixo, chars, tamanho):
     """Vale avisar que a extração parece falha?
 
@@ -275,12 +284,15 @@ def _resultado(saida):
     return None
 
 
-def subir(rel, nome, base):
+def subir(rel, nome, base, extras=None):
     """Roda o uploader no container e devolve o RESULT (dict). Levanta Falha."""
     caminho = f'/documents/{rel}'
     t0 = time.time()
     try:
-        r = _exec(['--path', caminho, '--name', nome, '--kb', base, '--admin-email', ADMIN], 3700)
+        args = ['--path', caminho, '--name', nome, '--kb', base, '--admin-email', ADMIN]
+        for extra in extras or []:
+            args += ['--kb-extra', extra]
+        r = _exec(args, 3700)
     except subprocess.TimeoutExpired:
         raise Falha('timeout do docker exec (Docling travou?)')
     out = _resultado(r.stdout)
@@ -583,7 +595,7 @@ def main():
             continue
 
         try:
-            out = subir(rel, nome, base)
+            out = subir(rel, nome, base, bases_extras(rel))
         except Falha as exc:
             motivo = str(exc)
             log(f'[falhou] {rel}: {motivo}')

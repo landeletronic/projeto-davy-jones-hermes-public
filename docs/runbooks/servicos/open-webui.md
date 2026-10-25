@@ -8,6 +8,7 @@
 | Conexão | `http://hermes:8642/v1` + header `X-Hermes-Session-Key: {{USER_EMAIL}}` |
 | Vetores | `VECTOR_DB=qdrant`, coleções com prefixo `owui_` |
 | Tutor | `Tutor Tiradentes — 9º ano` (Pipe `tutor_tiradentes` + SQLite somente leitura) |
+| Apostilas | `Apostilas Tiradentes` (Pipe `apostilas_tiradentes` + base vetorial exclusiva) |
 
 ## Verificar
 
@@ -43,6 +44,9 @@ cd /home/usuario/hermes-architect && docker compose restart open-webui
 - **Tutor não aparece / falha em toda questão** → veja
   [`install_tutor_tiradentes.py`](../scripts/install_tutor_tiradentes.md). O compose precisa montar
   `~/rag-state/questoes.db` em `/data/questoes.db:ro`; `restart` não adiciona bind-mount novo.
+- **Apostilas não aparece / recupera prova em vez de material didático** → veja
+  [`install_apostilas_tiradentes.py`](../scripts/install_apostilas_tiradentes.md) e confira se o modelo
+  aponta somente para a base `Apostilas Tiradentes`.
 
 ## Backup
 

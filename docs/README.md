@@ -53,6 +53,7 @@ conserta. **Todo documento desta árvore está listado abaixo** — a suíte fal
 | [`runbooks/scripts/rag_ingest.md`](runbooks/scripts/rag_ingest.md) | a cada 15 min (share de documentos → RAG) |
 | [`runbooks/scripts/questoes.md`](runbooks/scripts/questoes.md) | a cada 30 min (provas/gabaritos → banco de questões) |
 | [`runbooks/scripts/install_tutor_tiradentes.md`](runbooks/scripts/install_tutor_tiradentes.md) | no deploy (Pipe/modelo amigável → Open WebUI) |
+| [`runbooks/scripts/install_apostilas_tiradentes.md`](runbooks/scripts/install_apostilas_tiradentes.md) | no deploy (base exclusiva + Pipe/modelo de apostilas → Open WebUI) |
 | [`runbooks/scripts/tools.md`](runbooks/scripts/tools.md) | índice dos scripts de `tools/` (sob demanda) |
 | [`runbooks/scripts/make-public-repo.md`](runbooks/scripts/make-public-repo.md) | sob demanda (gera/publica o espelho público sanitizado) |
 | [`runbooks/scripts/inventario-proxmox.md`](runbooks/scripts/inventario-proxmox.md) | sob demanda (inventário de hardware do servidor físico, disparado do Windows) |
@@ -87,6 +88,7 @@ conserta. **Todo documento desta árvore está listado abaixo** — a suíte fal
 |---|---|
 | [`learning/MAPA-MENTAL.md`](learning/MAPA-MENTAL.md) | trilha N0–N5 de estudo do stack |
 | [`learning/TUTOR-TIRADENTES-GUIA-ALUNAS.md`](learning/TUTOR-TIRADENTES-GUIA-ALUNAS.md) ([PDF](learning/TUTOR-TIRADENTES-GUIA-ALUNAS.pdf)) | tutorial visual para alunas do 9º ano usarem o Tutor Tiradentes |
+| [`learning/APOSTILAS-TIRADENTES-GUIA-ALUNAS.md`](learning/APOSTILAS-TIRADENTES-GUIA-ALUNAS.md) | guia rápido para estudar conteúdos e exercícios das apostilas |
 | [`ai-memory.md`](ai-memory.md) | memória consolidada das conversas (diretrizes, acertos, problemas) |
 
 ## Regras de convivência

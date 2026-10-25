@@ -1138,6 +1138,92 @@ else
 fi
 
 # ---------------------------------------------------------------------------
+section "APOSTILAS TIRADENTES — conteúdo didático e exercícios"
+apostilas_state=$(docker exec -i open-webui python - <<'PY' 2>/dev/null
+import hashlib, json, os, re, sqlite3
+c = sqlite3.connect('/app/backend/data/webui.db')
+f = c.execute("select name,content,is_active,is_global from function where id='apostilas_tiradentes'").fetchone()
+m = c.execute("select name,meta,is_active from model where id='apostilas_tiradentes'").fetchone()
+kb = c.execute("select id from knowledge where name='Apostilas Tiradentes'").fetchone()
+source_kb = c.execute("select id from knowledge where name='Tiradentes BM'").fetchone()
+mg = c.execute("select count(*) from access_grant where resource_type='model' and resource_id='apostilas_tiradentes' and principal_type='user' and principal_id='*' and permission='read'").fetchone()[0]
+kg = c.execute("select count(*) from access_grant where resource_type='knowledge' and resource_id=? and principal_type='user' and principal_id='*' and permission='read'", (kb[0] if kb else '',)).fetchone()[0]
+print('FUNCTION=' + ('ok' if f and f[0] == 'Apostilas Tiradentes' and f[2] == 1 and f[3] == 0 else 'bad'))
+print('MODEL=' + ('ok' if m and m[0] == 'Apostilas Tiradentes' and m[2] == 1 else 'bad'))
+meta = json.loads(m[1]) if m else {}
+knowledge = meta.get('knowledge') or []
+print('KNOWLEDGE=' + ('ok' if kb and any(k.get('id') == kb[0] for k in knowledge) and len(knowledge) == 1 else 'bad'))
+print(f'GRANTS={mg}/{kg}')
+print('SOURCE_SHA=' + (hashlib.sha256(f[1].encode()).hexdigest() if f else 'missing'))
+
+root = '/documents/concurso/tiradentes-bm/apostilas'
+identidades = []
+for base, dirs, files in os.walk(root):
+    dirs[:] = [d for d in dirs if not d.startswith(('_', '.'))]
+    for name in files:
+        if name.startswith(('_', '.')) or os.path.splitext(name)[1].lower() not in ('.pdf','.md','.txt','.docx'):
+            continue
+        h = hashlib.sha256()
+        with open(os.path.join(base, name), 'rb') as fh:
+            for block in iter(lambda: fh.read(1 << 20), b''):
+                h.update(block)
+        rel = os.path.relpath(os.path.join(base, name), root).replace(os.sep, '/')
+        partes = rel.split('/')
+        stem, ext = os.path.splitext(partes[-1].lower())
+        ano = next((parte for parte in partes[:-1] if re.fullmatch(r'\d{4}', parte)), '')
+        if not ano:
+            match = re.search(r'(?<!\d)(\d{4})(?!\d)', stem)
+            ano = match.group(1) if match else ''
+        tokens = [token for token in stem.split('-') if token and token != ano]
+        pedacos = ['tiradentes-bm'] + ([ano] if ano else [])
+        resto = '-'.join(tokens)[:60]
+        if resto:
+            pedacos.append(resto)
+        identidades.append((h.hexdigest(), '-'.join(pedacos) + ext))
+target = set()
+if kb:
+    target = {row[0] for row in c.execute('select file_id from knowledge_file where knowledge_id=?', (kb[0],))}
+rows = c.execute('select f.id,f.hash,f.filename from file f join knowledge_file kf on kf.file_id=f.id where kf.knowledge_id=?', (source_kb[0] if source_kb else '',)).fetchall()
+esperados = {fid for fid,digest,filename in rows if any(digest == h or filename == n for h,n in identidades)}
+print(f'FILES={len(target)}/{len(esperados)}')
+print(f'MISSING={len(esperados - target)}')
+print(f'EXTRA={len(target - esperados)}')
+PY
+)
+if has "$apostilas_state" "FUNCTION=ok"; then ok "Apostilas: Pipe ativo e não global com nome amigável"; else bad "Apostilas: Function ausente ou incorreta"; fi
+if has "$apostilas_state" "MODEL=ok"; then ok "Apostilas: modelo ativo com nome amigável"; else bad "Apostilas: modelo ausente/inativo"; fi
+if has "$apostilas_state" "KNOWLEDGE=ok"; then ok "Apostilas: modelo aponta somente para a base exclusiva"; else bad "Apostilas: knowledge exclusiva ausente ou modelo aponta para outra base"; fi
+if has "$apostilas_state" "GRANTS=1/1"; then ok "Apostilas: modelo e base legíveis por usuário comum"; else bad "Apostilas: ACL pública de leitura incompleta"; fi
+if has "$apostilas_state" "MISSING=0" && has "$apostilas_state" "EXTRA=0" && ! has "$apostilas_state" "FILES=0/0"; then
+  ok "Apostilas: todos e somente os arquivos da pasta estão vinculados"
+else
+  bad "Apostilas: vínculos incompletos ou contaminados ($apostilas_state)"
+fi
+
+apostilas_source=/home/usuario/hermes-architect/ops/open-webui/apostilas_tiradentes.py
+if [ -f "$apostilas_source" ]; then
+  expected_sha=$(sha256sum "$apostilas_source" | awk '{print $1}')
+  if has "$apostilas_state" "SOURCE_SHA=$expected_sha"; then ok "Apostilas: Function sem deriva em relação ao repo"; else bad "Apostilas: código da Function diverge do repo (rode o sync)"; fi
+else
+  bad "Apostilas: fonte versionada ausente"
+fi
+if python3 "$tutor_root/test_apostilas_pipe.py" >/dev/null 2>&1; then
+  ok "Apostilas: regressões locais (modos, RAG, fail-closed e fontes)"
+else
+  bad "Apostilas: testes locais falharam"
+fi
+if python3 -c 'import sys; sys.path.insert(0,"/home/usuario/hermes-architect/tools"); import rag_ingest as r; assert r.bases_extras("concurso/tiradentes-bm/apostilas/matematica/a.pdf") == ["Apostilas Tiradentes"]; assert r.bases_extras("concurso/tiradentes-bm/2025/prova_gabarito/prova.pdf") == []' >/dev/null 2>&1; then
+  ok "Apostilas: novos arquivos da pasta recebem a base adicional"
+else
+  bad "Apostilas: roteamento do worker para a base adicional falhou"
+fi
+if docker exec -i open-webui python - < "$tutor_root/smoke_apostilas.py" >/dev/null 2>&1; then
+  ok "Apostilas: usuário comum vê o modelo e imagem falha amigavelmente"
+else
+  bad "Apostilas: smoke como usuário comum falhou"
+fi
+
+# ---------------------------------------------------------------------------
 section "FASE 6.4 — Backup e pinagem"
 if [ -x /usr/local/bin/hermes-backup ]; then ok "script hermes-backup instalado"; else bad "hermes-backup ausente"; fi
 if [ -f /etc/cron.d/hermes-backup ]; then ok "cron de backup diário"; else bad "cron de backup ausente"; fi
