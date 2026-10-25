@@ -129,8 +129,8 @@ services:
   # FASE 3 — Interface + auth (e-mail/senha) — decisão C
   # ---------------------------------------------------------------------------
   open-webui:
-    # pinado por digest — v0.12.3 (upgrade de 0.11.4 em 2026-10-18)
-    image: ghcr.io/open-webui/open-webui@sha256:a537bbe1e6b428820f52ed4a029d7fff97062e24d5cf32c365fba36fd0542def
+    # pinado por digest — v0.12.4 (upgrade de 0.12.3 em 2026-10-25)
+    image: ghcr.io/open-webui/open-webui@sha256:a5b9e403d19154796850679c8c5d1295301cee954be8b84ddd62af92426558f7
     container_name: open-webui
     restart: unless-stopped
     depends_on:

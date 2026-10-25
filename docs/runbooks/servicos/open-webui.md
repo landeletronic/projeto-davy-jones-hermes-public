@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Imagem | `ghcr.io/open-webui/open-webui@sha256:a537bbe1…` (**0.12.3**, pinada por digest) |
+| Imagem | `ghcr.io/open-webui/open-webui@sha256:a5b9e403…` (**0.12.4**, pinada por digest) |
 | Porta | `127.0.0.1:3000` → `8080` no container; a LAN entra pelo **nginx em 443** |
 | Dados | volume `open_webui_data` (`webui.db` = usuários, conversas, knowledge) |
 | Conexão | `http://hermes:8642/v1` + header `X-Hermes-Session-Key: {{USER_EMAIL}}` |

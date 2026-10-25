@@ -89,8 +89,8 @@ Medido pelo inventário de 2026-10-23 (DMI/SMBIOS, `lspci`, `/sys`). É o ferro 
 
 | Software | Versão | Para quê |
 |---|---|---|
-| Docker Engine | **29.9.0** | containers |
-| Docker Compose | **v5.6.0** | orquestração |
+| Docker Engine | **29.9.2** | containers |
+| Docker Compose | **v5.6.1** | orquestração |
 | Python | **3.14.4** | scripts de `tools/` e do host |
 | Git | **2.53.0** | deploy e CI |
 | Bash | **5.3.9** | suíte e scripts |
@@ -104,7 +104,7 @@ Medido pelo inventário de 2026-10-23 (DMI/SMBIOS, `lspci`, `/sys`). É o ferro 
 
 | Container | Versão | Papel |
 |---|---|---|
-| `open-webui` | **0.12.3** | chat do escritório + RAG, em HTTPS |
+| `open-webui` | **0.12.4** | chat do escritório + RAG, em HTTPS |
 | `hermes-agent` | **Hermes Agent 0.21.6** (2026.9.24) | gateway OpenAI-compatible + memória |
 | `hermes-dashboard` | **Hermes Agent 0.21.6** (imagem `hermes-tools`) | painel de operação `:9119` |
 | `ollama` | **0.40.2** | modelos de chat e embeddings |

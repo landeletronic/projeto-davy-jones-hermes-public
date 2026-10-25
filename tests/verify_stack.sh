@@ -336,10 +336,10 @@ print(c.execute(\"select count(*) from knowledge where lower(name) like '%teste%
 if [ "$tst" = "0" ]; then ok "nenhuma knowledge base de teste no OWUI"; else bad "${tst:-?} knowledge base(s) de teste no OWUI (use tools/cleanup_owui_test_kb.py)"; fi
 
 # ---------------------------------------------------------------------------
-section "OWUI — versão e sessão humana (v0.12.3+)"
+section "OWUI — versão e sessão humana (v0.12.4+)"
 owui_ver=$(curl -sk --max-time 8 https://localhost/api/version 2>/dev/null \
   | python3 -c 'import sys,json;print(json.load(sys.stdin).get("version",""))' 2>/dev/null)
-if [ "$owui_ver" = "0.12.3" ]; then ok "OWUI 0.12.3 (pinado)"; else bad "OWUI versão = ${owui_ver:-?} (esperado 0.12.3)"; fi
+if [ "$owui_ver" = "0.12.4" ]; then ok "OWUI 0.12.4 (pinado)"; else bad "OWUI versão = ${owui_ver:-?} (esperado 0.12.4)"; fi
 
 # /api/v1/auths/ exige sessão humana (JWT typ=session); API key não serve mais.
 cat > /tmp/_owui_session.py <<'PY'

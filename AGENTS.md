@@ -98,7 +98,7 @@ Saída: `PASS`/`FAIL` (e `WARN`) por item + resumo. Exit code `0` = tudo ok.
   Upgrade é **por degrau**: 1.15.2 → 1.16.3 → 1.19.2 (o salto direto não lê o índice `rocks_db`);
   `tools/verify_qdrant_upgrade.sh --via` prova a cadeia numa **cópia do volume** antes.
 - Open WebUI com auth ligado; Hermes gateway respondendo e servindo `hermes-agent`.
-- OWUI **0.12.3** (pinado por digest); `/api/v1/auths/` aceita só **sessão humana**
+- OWUI **0.12.4** (pinado por digest); `/api/v1/auths/` aceita só **sessão humana**
   (JWT `typ=session`) — API key **não** vale como sessão.
 - mem0 provider ativo; patch de identidade presente; **sem** `MEM0_USER_ID` fixo.
 - **Config do Hermes sem deriva:** `hermes-data/config.yaml` no repo é byte a byte igual a
