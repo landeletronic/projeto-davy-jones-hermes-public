@@ -86,7 +86,7 @@ conserta. **Todo documento desta árvore está listado abaixo** — a suíte fal
 | Documento | Conteúdo |
 |---|---|
 | [`learning/MAPA-MENTAL.md`](learning/MAPA-MENTAL.md) | trilha N0–N5 de estudo do stack |
-| [`learning/TUTOR-TIRADENTES-GUIA-ALUNAS.md`](learning/TUTOR-TIRADENTES-GUIA-ALUNAS.md) | tutorial visual para alunas do 9º ano usarem o Tutor Tiradentes |
+| [`learning/TUTOR-TIRADENTES-GUIA-ALUNAS.md`](learning/TUTOR-TIRADENTES-GUIA-ALUNAS.md) ([PDF](learning/TUTOR-TIRADENTES-GUIA-ALUNAS.pdf)) | tutorial visual para alunas do 9º ano usarem o Tutor Tiradentes |
 | [`ai-memory.md`](ai-memory.md) | memória consolidada das conversas (diretrizes, acertos, problemas) |
 
 ## Regras de convivência

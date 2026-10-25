@@ -1126,6 +1126,17 @@ else
   bad "Tutor: guia visual ausente ou com acentos corrompidos"
 fi
 
+# O primeiro PDF foi gerado com o título interno "Tutor Tiradentes ? guia para
+# alunas", embora o texto das páginas estivesse correto. Esse metadado aparece
+# nas propriedades do arquivo e em indexadores, então também faz parte do guia.
+tutor_pdf=/home/usuario/hermes-architect/docs/learning/TUTOR-TIRADENTES-GUIA-ALUNAS.pdf
+tutor_pdf_title=$(pdfinfo "$tutor_pdf" 2>/dev/null | sed -n 's/^Title:[[:space:]]*//p')
+if [ "$tutor_pdf_title" = 'Tutor Tiradentes — guia para alunas' ]; then
+  ok "Tutor: PDF publicado com título interno correto"
+else
+  bad "Tutor: PDF ausente, ilegível ou com título interno corrompido"
+fi
+
 # ---------------------------------------------------------------------------
 section "FASE 6.4 — Backup e pinagem"
 if [ -x /usr/local/bin/hermes-backup ]; then ok "script hermes-backup instalado"; else bad "hermes-backup ausente"; fi
