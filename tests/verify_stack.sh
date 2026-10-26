@@ -1208,7 +1208,7 @@ else
   bad "Apostilas: fonte versionada ausente"
 fi
 if python3 "$tutor_root/test_apostilas_pipe.py" >/dev/null 2>&1; then
-  ok "Apostilas: regressões locais (modos, RAG, fail-closed e fontes)"
+  ok "Apostilas: regressões locais (disciplina, recuperação, web opt-in, fail-closed e fontes)"
 else
   bad "Apostilas: testes locais falharam"
 fi

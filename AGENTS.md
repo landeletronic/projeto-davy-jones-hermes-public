@@ -149,7 +149,9 @@ Saída: `PASS`/`FAIL` (e `WARN`) por item + resumo. Exit code `0` = tudo ok.
   conferido), `hermes_tls_cert_days_left` exposta. A suíte ainda testa a renovação em
   **diretório isolado**: gera com a validade pedida, **não** sobrescreve sem `--force` e
   guarda o par antigo. Expirado = FAIL.
-- Busca web **desligada** (`ENABLE_WEB_SEARCH=false`); SearXNG interno com `json`.
+- Busca web global do OWUI **desligada** (`ENABLE_WEB_SEARCH=false`). Exceção controlada: somente o
+  Pipe **Apostilas Tiradentes** consulta o SearXNG quando faltam fontes locais **e** o usuário pede
+  explicitamente pesquisa externa; o Tutor Tiradentes nunca usa web.
 - Monitoramento: Prometheus com ≥4 alvos `up`; Grafana `database: ok` via TLS; dashboards
   `hermes-lab` e `hermes-alerts` provisionados; Grafana **não** publica porta.
 - Alertas (grupo `lab` em `monitoring/alert-rules.yml`): alvo fora do ar, disco >85%, backup

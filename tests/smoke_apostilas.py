@@ -39,8 +39,12 @@ def token_usuario_comum():
     }, pid1_env("WEBUI_SECRET_KEY"), algorithm="HS256")
 
 
-def chat(headers, texto, timeout=60, files=None):
-    payload = {"model": MODEL, "messages": [{"role": "user", "content": texto}], "stream": False}
+def chat(headers, texto, timeout=60, files=None, messages=None):
+    payload = {
+        "model": MODEL,
+        "messages": messages or [{"role": "user", "content": texto}],
+        "stream": False,
+    }
     if files:
         payload["files"] = files
     response = requests.post(BASE + "/api/chat/completions", headers=headers, json=payload,
@@ -69,13 +73,47 @@ def main():
         resposta = chat(
             headers,
             "Usando a apostila de Matemática, explique porcentagem para o 9º ano e informe a fonte.",
-            timeout=360,
+            timeout=900,
         )
         normalizada = resposta.lower()
         assert "porcent" in normalizada, resposta
         assert "fontes recuperadas" in normalizada and "apostila" in normalizada, resposta
         assert "<think>" not in normalizada and "reasoning_content" not in normalizada, resposta
         print("PASS apostilas E2E: explicação didática + fonte")
+
+        continuidade = chat(
+            headers,
+            "",
+            timeout=360,
+            messages=[
+                {"role": "user", "content": "Quero estudar Matemática."},
+                {"role": "assistant", "content": "Vamos estudar expressões algébricas."},
+                {"role": "user", "content": (
+                    "continuando os estudos sobre expressões algébricas. pode aprofundar mais este "
+                    "conteúdo. se tiver acesso a internet pode verificar material didático externo."
+                )},
+            ],
+        )
+        normalizada = continuidade.lower()
+        assert "express" in normalizada and "fontes recuperadas" in normalizada, continuidade
+        assert "matemática.pdf" in normalizada or "matematica.md" in normalizada, continuidade
+        assert "português.pdf" not in normalizada and "portugues.md" not in normalizada, continuidade
+        assert "pesquisa externa não acionada" in normalizada, continuidade
+        assert "fontes externas consultadas" not in normalizada, continuidade
+        print("PASS apostilas E2E: continuidade preserva Matemática + fonte local prioritária")
+
+        externa = chat(
+            headers,
+            "As apostilas não possuem Números Complexos. Pesquise na internet material didático "
+            "externo sobre Números Complexos e explique o conceito básico, citando os links.",
+            timeout=900,
+        )
+        normalizada = externa.lower()
+        assert "complex" in normalizada, externa
+        assert "fontes externas consultadas" in normalizada and "http" in normalizada, externa
+        assert "fontes recuperadas" not in normalizada, externa
+        assert "<think>" not in normalizada and "reasoning_content" not in normalizada, externa
+        print("PASS apostilas E2E: fallback explícito via SearXNG + links externos")
 
 
 if __name__ == "__main__":

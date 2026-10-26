@@ -27,12 +27,23 @@ caminho esteja dentro de `concurso/tiradentes-bm/apostilas/`.
 ## Contrato pedagógico e de segurança
 
 - A busca recebe somente conteúdo da base exclusiva de apostilas.
+- O Pipe detecta a disciplina pelo pedido atual e, em pedidos elípticos de continuação, pelo
+  histórico recente. A mensagem atual sempre vence o histórico.
+- Fonte identificada como outra disciplina é rejeitada. Se a busca inicial do Open WebUI trouxer
+  somente a disciplina errada, o Pipe refaz a recuperação local no Qdrant, restrita à disciplina
+  correta e à base **Apostilas Tiradentes**.
 - A resposta informa os nomes das fontes recuperadas.
 - Sem trecho recuperado, o Pipe não chama o modelo e responde que não encontrou conteúdo suficiente.
 - Exercício incompleto não pode ser reconstruído por suposição.
 - Atividade criada pelo modelo é rotulada como **inédita e não oficial**.
 - Dica não deve revelar a resposta antes da tentativa da aluna.
 - Imagem recebe orientação amigável; o erro técnico de `mmproj` não aparece.
+- A busca global do Open WebUI continua desabilitada. O Pipe consulta diretamente o SearXNG somente
+  quando **as apostilas não sustentam o assunto** e a aluna pede explicitamente pesquisa na internet.
+- Resultados externos são tratados como conteúdo não confiável, limitados a três, rotulados em
+  seção própria e publicados com título e URL. Instruções encontradas nos resultados são ignoradas.
+- Sem pedido explícito, ausência de fonte continua falhando fechado. O Tutor Tiradentes não participa
+  desse fluxo e permanece restrito ao SQLite e às fontes locais.
 - Provas oficiais por ano/número continuam sendo responsabilidade do **Tutor Tiradentes — 9º ano**.
 
 ## Aplicar ou reinstalar
@@ -61,5 +72,8 @@ ssh davy-jones-hermes 'docker exec -i open-webui python - --resolver' < tests/sm
 | modelo não aparece | rode o instalador e confira os grants no oráculo |
 | conteúdo de prova aparece | confira se o modelo está ligado à base `Apostilas Tiradentes`, não à `Tiradentes BM` |
 | arquivo novo não aparece | rode `rag-ingest`; arquivos em `apostilas/` recebem a base adicional automaticamente |
-| resposta diz que não encontrou | informe disciplina e assunto mais específico; veja as fontes recuperadas |
+| assunto de Matemática recebe fonte de Português | rode o smoke com `--resolver`; o Pipe deve rejeitar a fonte incompatível e refazer a busca por disciplina |
+| resposta diz que não encontrou | confira se o assunto existe nas apostilas e veja as fontes recuperadas; a aluna não precisa reformular um pedido que já identifica claramente o assunto |
+| pesquisa externa não acontece | confirme duas condições: ausência de suporte local e verbo explícito de pesquisa junto de “internet”, “web”, “site” ou “material externo” |
+| pesquisa externa falha | teste o JSON do SearXNG e a conectividade de saída; o Pipe deve responder sem inventar consulta ou links |
 | exercício veio incompleto | procure pelo começo do enunciado ou peça outro; não mande o modelo completar |

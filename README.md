@@ -110,7 +110,7 @@ Medido pelo inventário de 2026-10-23 (DMI/SMBIOS, `lspci`, `/sys`). É o ferro 
 | `ollama` | **0.40.2** | modelos de chat e embeddings |
 | `qdrant` | **1.19.2** | banco vetorial (mem0 + RAG) |
 | `docling` | **docling-serve-cpu 1.37.0** | conversão de PDF/Markdown |
-| `searxng` | **2026.10.17** | meta-busca (busca web desligada no chat) |
+| `searxng` | **2026.10.17** | metabusca; fallback explícito apenas do Apostilas Tiradentes |
 | `nginx` | **1.31.7-alpine** | TLS e proxy da LAN |
 | `prometheus` | **3.15.0** | coleta e regras de alerta |
 | `node-exporter` | **1.12.1** | métricas do host |

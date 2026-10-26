@@ -212,7 +212,10 @@ def install(source_path):
         "id": FUNCTION_ID,
         "name": MODEL_NAME,
         "content": content,
-        "meta": {"description": "Assistente pedagógico local para as apostilas Tiradentes."},
+        "meta": {"description": (
+            "Assistente pedagógico das apostilas Tiradentes com pesquisa externa via SearXNG "
+            "somente sob pedido explícito e na ausência de fonte local."
+        )},
         "commit_message": "sincronização pelo repositório",
     }
     current = optional_get(f"/api/v1/functions/id/{FUNCTION_ID}", headers)
@@ -233,7 +236,10 @@ def install(source_path):
         "is_active": True,
         "params": {"temperature": 0.2, "function_calling": "legacy"},
         "meta": {
-            "description": "Explicações, exercícios, dicas e correções com base nas apostilas Tiradentes.",
+            "description": (
+                "Explicações, exercícios, dicas e correções pelas apostilas; fallback web explícito "
+                "via SearXNG somente quando faltar fonte local."
+            ),
             "knowledge": [{"id": kb["id"], "name": KB_NAME, "type": "collection"}],
             "capabilities": {
                 "vision": True, "file_upload": False, "web_search": False,

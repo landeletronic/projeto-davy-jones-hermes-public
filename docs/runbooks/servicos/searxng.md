@@ -5,7 +5,7 @@
 | Imagem | `searxng/searxng@sha256:8bdd9aa1…` (2026.10.17) |
 | Porta | **nenhuma publicada** (só rede interna, `:8080`) |
 | Config | `searxng/settings.yml` (o container roda como uid **977** e toma posse do diretório) |
-| Uso no lab | **busca web desligada** no OWUI (`ENABLE_WEB_SEARCH=false`) |
+| Uso no lab | OWUI global desligado; fallback explícito somente do **Apostilas Tiradentes** |
 
 ## Verificar
 
@@ -28,5 +28,6 @@ cd /home/usuario/hermes-architect && docker compose restart searxng
   `/tmp` + `sudo install` justamente por isso; editando à mão, use `sudo`.
 - **Container reinicia em loop** → YAML inválido. `docker logs searxng` mostra a linha.
 
-> O lab é offline por decisão: o SearXNG existe para não deixar a busca web "meio ligada".
-> Se um dia for ligar, é `ENABLE_WEB_SEARCH=true` no OWUI **e** revisar a política de saída.
+> O lab continua independente da internet e `ENABLE_WEB_SEARCH=false` impede busca global no OWUI.
+> O Pipe Apostilas Tiradentes acessa `http://searxng:8080/search` diretamente somente no fallback
+> duplamente condicionado (sem fonte local + pedido explícito). O Tutor Tiradentes não usa web.
