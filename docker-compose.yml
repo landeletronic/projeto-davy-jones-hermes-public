@@ -291,7 +291,12 @@ services:
   prometheus:
     image: prom/prometheus@sha256:efd719c99d83b060d9daefdcf00360461adf279f45ef5391f8d111892118753e # v3.15.0
     container_name: prometheus
-    restart: unless-stopped
+    # `always`, não `unless-stopped`: no shutdown o daemon manda SIGTERM e o
+    # Prometheus sai limpo com exit 0; o Docker trata como "parado" e o
+    # unless-stopped NÃO o reinicia no boot (ficou 5 dias morto em 2026-10-30).
+    # `always` força o restart no boot independentemente do exit code. É o
+    # watchdog do lab — precisamos que volte sempre.
+    restart: always
     command:
       - --config.file=/etc/prometheus/prometheus.yml
       - --storage.tsdb.path=/prometheus
@@ -313,7 +318,9 @@ services:
   node-exporter:
     image: prom/node-exporter@sha256:1b4e4438faca4dd7e001dd445d161a4a2091b0fededa84093b3a8dfeae1f1be0 # v1.12.1
     container_name: node-exporter
-    restart: unless-stopped
+    # Tier de observabilidade: `always` para voltar após reboot do host mesmo
+    # saindo com exit 0 no shutdown (ver comentário em prometheus).
+    restart: always
     pid: host
     command:
       - --path.procfs=/host/proc
@@ -338,7 +345,8 @@ services:
   cadvisor:
     image: gcr.io/cadvisor/cadvisor@sha256:3de2bd5203120b866d74a9b283b2ffb8ec382fbf9dc321814700c6ea6f44ec57 # v0.55.1
     container_name: cadvisor
-    restart: unless-stopped
+    # Tier de observabilidade: `always` (ver comentário em prometheus).
+    restart: always
     privileged: true
     command:
       - --housekeeping_interval=30s
@@ -355,7 +363,8 @@ services:
   grafana:
     image: grafana/grafana@sha256:dbbc38ea21103cefb50396340cd88afec779c7e070b0a7bf5a75b4ce46651d3f # 13.2.4
     container_name: grafana
-    restart: unless-stopped
+    # Tier de observabilidade: `always` (ver comentário em prometheus).
+    restart: always
     depends_on:
       prometheus:
         condition: service_healthy

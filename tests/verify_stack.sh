@@ -39,6 +39,17 @@ for c in qdrant ollama docling open-webui nginx searxng prometheus node-exporter
   if [ "$h" = "healthy" ]; then ok "health $c = healthy"; else bad "health $c = $h (esperado healthy)"; fi
 done
 
+# Tier de observabilidade precisa de `restart: always` (#incidente 2026-10-30): no
+# shutdown o daemon manda SIGTERM e o Prometheus sai limpo com exit 0. Com
+# `unless-stopped` o Docker trata essa saída como parada normal e NÃO o reinicia
+# no boot — ficou 5 dias morto e o lab ficou cego (alertas parados, CI sem alvo).
+# `always` força o restart no boot independentemente do exit code.
+for c in prometheus node-exporter cadvisor grafana; do
+  rp=$(docker inspect -f '{{.HostConfig.RestartPolicy.Name}}' "$c" 2>/dev/null || echo missing)
+  if [ "$rp" = "always" ]; then ok "restart policy $c = always (sobrevive a reboot do host)"
+  else bad "restart policy $c = $rp (esperado always; sem ela o container não volta após shutdown limpo)"; fi
+done
+
 # Rotação de logs do Docker (#6 do relatório): sem max-size o json-file cresce
 # sem limite. Vale para todo container em execução, inclusive os criados depois.
 semrot=""

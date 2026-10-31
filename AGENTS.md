@@ -511,6 +511,21 @@ Saída: `PASS`/`FAIL` (e `WARN`) por item + resumo. Exit code `0` = tudo ok.
 - **Varredura de segredo que casa interpolação é ruído que esconde bug:** o padrão
   `API_SERVER_KEY\s*[:=]\s*\S{16,}` acusava `${API_SERVER_KEY:?defina ... no .env}` — que é o
   formato correto. Excluir `${` e `<` do valor (`(?!\$\{)(?!<)`) antes de acusar.
+- **`restart: unless-stopped` não volta após reboot se o container saiu limpo (exit 0):** no
+  shutdown o daemon manda `SIGTERM`; o Prometheus trata e sai com `exit 0` rápido. O Docker
+  classifica isso como "parada normal" e o `unless-stopped` **respeita** — não reinicia no boot.
+  Os outros 11 containers morreram com código não-zero/tardio e voltaram; só o Prometheus ficou
+  morto 5 dias (25/10→30/10/2026), cegando alertas, CI e painel. Correção: `restart: always`
+  no tier de observabilidade (`prometheus`, `node-exporter`, `cadvisor`, `grafana`), que força o
+  restart no boot independentemente do exit code. A suíte cobra `always` nos quatro.
+- **`--force-recreate` muda o IP do container e o nginx fica apontando para o antigo (502):** o
+  nginx resolve o upstream na **inicialização**; recriar o Grafana lhe dá IP novo (ex.: `172.18.0.8`
+  → `172.18.0.13`) e o nginx mantém o velho em cache → `connect() failed (111)` e `:3001` responde
+  `502` mesmo com o Grafana `healthy`. Correção: `docker exec nginx nginx -s reload` para reler o
+  DNS. Vale para qualquer upstream recriado (Grafana, OWUI, docling).
+- **Conteúdo corrigido pelo usuário como alucinação não pode ser reutilizado:** remover a ocorrência
+  da memória durável e dos artefatos derivados; não reintroduzir o conteúdo em respostas, relatórios
+  ou planos até que o usuário autorize explicitamente uma nova análise.
 
 ## 6. Regras para o agente (OpenCode)
 
