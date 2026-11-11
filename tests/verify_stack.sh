@@ -91,6 +91,11 @@ if [ "$hsa" -ge 1 ]; then ok "HSA_OVERRIDE_GFX_VERSION=10.3.0"; else bad "HSA_OV
 # da RX 6600 -> 13% das camadas em CPU e ~31 tok/s. Com KV q4_0 ele cabe inteiro
 # (5.6 GB, 100% GPU, ~62 tok/s) e convive com o bge-m3 (664 MB) sem swap.
 oenv=$(docker inspect -f '{{range .Config.Env}}{{println .}}{{end}}' ollama 2>/dev/null)
+if has "$oenv" "ROCR_VISIBLE_DEVICES=0"; then
+  ok "ROCm restrito à RX 6600 (RX 5500 não recebe o override gfx1030)"
+else
+  bad "ROCR_VISIBLE_DEVICES != 0 (duas GPUs + override global causam MEMORY_APERTURE_VIOLATION)"
+fi
 if has "$oenv" "OLLAMA_KV_CACHE_TYPE=q4_0"; then ok "KV cache q4_0 (qwen3 cabe na GPU)"; else bad "KV cache != q4_0 (modelo volta a transbordar para a CPU)"; fi
 if has "$oenv" "OLLAMA_MAX_LOADED_MODELS=2"; then ok "OLLAMA_MAX_LOADED_MODELS=2 (chat + embedding juntos)"; else bad "OLLAMA_MAX_LOADED_MODELS != 2 (embedding expulsa o chat)"; fi
 # Funcional: carrega os dois e confere que ficam residentes, ambos 100% na GPU.
@@ -205,6 +210,14 @@ if [ -f "$REPO_CFG" ]; then
   fi
 else
   warn "cópia do config no repo ausente ($REPO_CFG) - rode ops/deploy/sync-to-host.ps1"
+fi
+
+# Integração real MCP com Medusa. O token vem da variável de ambiente do
+# container e nunca é impresso; a Medusa só aceita o IP Tailscale do Davy.
+if docker exec -i hermes-agent python - < /home/usuario/hermes-architect/tests/smoke_medusa_mcp.py >/dev/null 2>&1; then
+  ok "Hermes: MCP Medusa responde a diagnóstico via container"
+else
+  bad "Hermes: MCP Medusa inacessível ou ferramenta de diagnóstico falhou"
 fi
 
 # ---------------------------------------------------------------------------
@@ -1365,6 +1378,15 @@ if [ -n "$KEY" ] && grep -rqI -e "$KEY" $SCAN 2>/dev/null; then
 else
   ok "API_SERVER_KEY fora do repo (só no .env/ambiente)"
 fi
+medusa_token=$(docker exec hermes-agent printenv MEDUSA_MCP_TOKEN 2>/dev/null || true)
+if [ -z "$medusa_token" ]; then
+  bad "MCP Medusa: credencial Hermes ausente do ambiente"
+elif (cd "$DOCDIR" && grep -raqF -- "$medusa_token" $SCAN 2>/dev/null); then
+  bad "MCP Medusa: credencial Hermes encontrada na árvore versionada"
+else
+  ok "MCP Medusa: credencial Hermes fora da árvore versionada"
+fi
+unset medusa_token
 if grep -rqI -E 'aim_[A-Za-z0-9_-]{30,}' $SCAN 2>/dev/null; then
   bad "token aim_ (ai-memory) dentro do repo"
 else

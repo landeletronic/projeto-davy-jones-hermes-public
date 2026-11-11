@@ -21,6 +21,13 @@ sandbox:
   image: ghcr.io/all-hands-ai/runtime:latest
   timeout: 300
   type: docker
+mcp_servers:
+  medusa-status:
+    url: http://100.126.89.55:18766/mcp
+    headers:
+      Authorization: 'Bearer ${MEDUSA_MCP_TOKEN}'
+    protocol: legacy
+    strict_redirect_headers: true
 terminal:
   backend: local
   cwd: /workspace

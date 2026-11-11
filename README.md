@@ -47,50 +47,70 @@ Backlog completo e evidências: **`docs/reports/RELATORIO-LACUNAS.md`**.
 
 ## Hardware e software instalados
 
-Medido no host em **2026-10-23** (`lscpu`, `dmidecode`, `lsblk`, `docker ps`, `ollama list`).
+Hardware e software conferidos novamente em **2026-11-11** no Proxmox e na VM. O inventário
+anterior foi preservado para registrar a troca de plataforma necessária para instalar duas GPUs.
 
 ### Servidor
 
 | Item | Especificação |
 |---|---|
 | Máquina | VM **QEMU/KVM** com a GPU em *passthrough* (VFIO) |
-| CPU | Intel Core i7-13700 — **16 vCPU** (x86_64, VT-x) |
+| CPU | **QEMU Virtual CPU — 14 vCPU** (x86_64; CPU física: Ryzen 7 5700X) |
 | Memória | **16 GB** (15 GiB visíveis) |
-| GPU | **AMD Radeon RX 6600** (Navi 23, 8 GB) — é ela que roda os modelos |
+| GPU | **AMD Radeon RX 6600** (8 GB) + **AMD Radeon RX 5500 XT** (8 GB), ambas em *passthrough*; o runtime de produção é restrito à RX 6600 |
 | Disco | 1 TB virtio sobre LVM: `/` com 1004 GB, **57 GB usados (6%)** |
 | Rede | LAN `192.168.15.0/24` — 80/443 (nginx), 3001 (Grafana), 9119 (dashboard), 22 (SSH), 445 (SMB) |
-| SO | **Ubuntu 26.04.1 LTS** · kernel `7.0.0-38-generic` · fuso `America/Sao_Paulo` |
+| SO | **Ubuntu 26.04.1 LTS** · kernel `7.0.0-43-generic` · fuso `America/Sao_Paulo` |
 
 > A tabela acima é a **VM** que roda o lab. O **servidor físico** que a hospeda (Proxmox) tem
 > inventário próprio — placa-mãe, CPU, GPU, rede, USB 1.1/2.0/3.x e portas do painel:
 > [`docs/architecture/INVENTARIO-HARDWARE-PROXMOX.md`](docs/architecture/INVENTARIO-HARDWARE-PROXMOX.md)
-> (gerado por `tools/inventario-proxmox.ps1`, a partir do Windows).
+> (atual) e [`INVENTARIO-HARDWARE-PROXMOX-2026-10-23.md`](docs/architecture/INVENTARIO-HARDWARE-PROXMOX-2026-10-23.md)
+> (plataforma anterior), gerados pelo coletor somente leitura.
 
 ### Servidor físico (Proxmox — `192.168.15.221`)
 
-Medido pelo inventário de 2026-10-23 (DMI/SMBIOS, `lspci`, `/sys`). É o ferro que hospeda a VM.
+Estado atual medido em **2026-11-11** diretamente no Proxmox por DMI/SMBIOS, `lspci`, `/sys`,
+`lsusb` e `pveversion`.
 
 | Item | Especificação |
 |---|---|
-| Placa-mãe | **ASRock B660M-HDV** — BIOS AMI **20.01** (27/11/2025), micro-ATX, socket LGA1700 |
-| CPU | Intel Core i7-13700 — **16 núcleos / 24 threads** (até 5200 MHz, Raptor Lake) |
-| Memória | **2 × 16 GB Kingston Fury `KF3200C16D4/16GX`** — **31 GiB** visíveis, rodando a **2400 MT/s** (kit DDR4-3200; XMP desligado no BIOS) |
-| GPU | **AMD Radeon RX 6600** (ASRock, Navi 23, 8 GB) — única VGA, presa em `vfio-pci` para a VM: o ferro **não tem saída de vídeo local** |
-| Rede | **Intel I219-V** (`e1000e`, `enp0s31f6`) — Gigabit |
-| USB | **1 controlador xHCI** (Alder Lake-S): root hub **USB 2.0** com 16 portas e **USB 3.x** com 10 portas; nenhum controlador USB 1.1 dedicado |
-| Áudio | Intel Alder Lake-S HD Audio (placa) + áudio HDMI/DP da GPU |
-| SO | **Proxmox VE 9.2.21** · Debian 13 trixie · kernel `7.0.14-23-pve` · host `pve-aorus` |
-| Fonte · cooler · gabinete | **não são vistos por software** — exigem ler a etiqueta dentro do gabinete (o DMI só traz `To Be Filled By O.E.M.`); o inventário diz isso em vez de inventar |
+| Placa-mãe | **ASUS TUF X470-PLUS GAMING** — socket AM4, BIOS AMI **6254** (05/01/2026) |
+| CPU | **AMD Ryzen 7 5700X — 8 núcleos / 16 threads** (máximo DMI: 4650 MHz) |
+| Memória | **2 × 16 GB Kingston Fury `KF3200C16D4/16GX`** — 31 GiB visíveis, rodando a **3200 MT/s** |
+| GPU | **AMD Radeon RX 6600** (8 GB) + **AMD Radeon RX 5500 XT** (8 GB), ambas em `vfio-pci` para a VM |
+| PCIe das GPUs | RX 6600: PCIe 3.0 ×8 direto na CPU; RX 5500 XT: PCIe 2.0 ×4 via chipset X470 |
+| Rede | **Realtek RTL8111H** — Gigabit, integrada à placa-mãe |
+| USB | **2 controladores xHCI**; root hubs com 18 portas USB 2.0 e 12 portas USB 3.x |
+| Áudio | AMD Starship/Matisse HD Audio + áudio HDMI/DP das duas GPUs |
+| SO | **Proxmox VE 9.2.21** · kernel `7.0.14-23-pve` · host `pve-tuf-x470` |
+| Fonte · cooler · gabinete | Não identificados por software; exigem leitura das etiquetas físicas |
 
 > Números de série, UUID e *asset tag* são mascarados no documento de propósito (o arquivo vai
 > também para o espelho público); MAC address não é coletado.
+
+### Histórico da troca de plataforma
+
+Para viabilizar **RX 6600 + RX 5500 XT na mesma VM**, foi necessário trocar placa-mãe e
+processador. A coleta antiga não foi descartada: permanece integral em
+[`docs/architecture/INVENTARIO-HARDWARE-PROXMOX-2026-10-23.md`](docs/architecture/INVENTARIO-HARDWARE-PROXMOX-2026-10-23.md).
+
+| Item | Plataforma anterior — 23/10/2026 | Plataforma atual — 11/11/2026 |
+|---|---|---|
+| Host | `pve-aorus` | `pve-tuf-x470` |
+| Placa-mãe | ASRock B660M-HDV, LGA1700 | ASUS TUF X470-PLUS GAMING, AM4 |
+| CPU | Intel Core i7-13700, 16 núcleos / 24 threads | AMD Ryzen 7 5700X, 8 núcleos / 16 threads |
+| Memória | 2 × 16 GB Kingston DDR4-3200 operando a 2400 MT/s | Os mesmos 2 × 16 GB operando a 3200 MT/s |
+| GPUs | RX 6600 8 GB | RX 6600 8 GB + RX 5500 XT 8 GB |
+| Rede | Intel I219-V Gigabit | Realtek RTL8111H Gigabit |
+| Motivo da mudança | Plataforma com uma GPU destinada à VM | Instalação e uso simultâneo de duas GPUs na VM |
 
 ### Software do host
 
 | Software | Versão | Para quê |
 |---|---|---|
-| Docker Engine | **29.9.2** | containers |
-| Docker Compose | **v5.6.1** | orquestração |
+| Docker Engine | **29.9.3** | containers |
+| Docker Compose | **v5.7.1** | orquestração |
 | Python | **3.14.4** | scripts de `tools/` e do host |
 | Git | **2.53.0** | deploy e CI |
 | Bash | **5.3.9** | suíte e scripts |
@@ -123,7 +143,7 @@ Imagens de terceiros ficam **pinadas por digest** (a suíte reprova `:latest`/`:
 
 | Modelo | Tamanho | Uso |
 |---|---|---|
-| `qwen3:4b-64k` | 2,5 GB | chat principal — 100% na GPU com KV cache `q4_0` |
+| `qwen3:4b-64k` | 2,5 GB | chat principal; projetado para a RX 6600 com KV `q4_0` — a verificação de 11/11 detectou fallback atual para CPU |
 | `qwen3:8b-chat-16k` | 5,2 GB | chat de estudo (conexão local do Open WebUI) |
 | `qwen3:8b-extract` | 5,2 GB | extração de fatos para o mem0 |
 | `bge-m3` | 1,2 GB | embeddings de 1024 dimensões (mem0 + RAG) |

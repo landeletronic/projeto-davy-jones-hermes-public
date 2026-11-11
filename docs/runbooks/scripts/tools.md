@@ -6,6 +6,7 @@
 
 | Script | Para que serve | Quando usar |
 |---|---|---|
+| `medusa_mcp.py` | MCP restrito de diagnóstico da Medusa | verificar GPU e Ollama remotamente |
 | `make_tls_cert.sh` | gera/renova o certificado autoassinado e (com `--reload`) recarrega o nginx | cert <30 dias ou expirado |
 | `verify_backup_restore.sh` | restaura os snapshots do último backup numa coleção temporária e apaga | validar um artefato |
 | `drill_restore_clean.sh` | sobe Qdrant + OWUI **novos** em volumes vazios, restaura e derruba | provar recuperação de máquina limpa |

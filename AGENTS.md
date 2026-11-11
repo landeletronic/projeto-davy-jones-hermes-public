@@ -230,6 +230,30 @@ Saída: `PASS`/`FAIL` (e `WARN`) por item + resumo. Exit code `0` = tudo ok.
   para questões oficiais por ano/número. O instalador idempotente
   `ops/bin/install_apostilas_tiradentes.py` vincula os mesmos `file_id` sem duplicar PDFs; arquivos
   novos dentro de `apostilas/` recebem a base extra pelo `rag-ingest`.
+- **Ferramenta Podcast (regras de produto, antes de implementar):** pode explicar em diálogo de
+  duas vozes uma questão de Matemática solicitada, mas questão **oficial** exige identificação por
+  ano+número e consulta exata ao banco do **Tutor Tiradentes** antes de gerar o roteiro; se a questão
+  não for localizada completa, falha fechado. Conteúdo criado pela IA continua rotulado como não
+  oficial. Em Matemática é proibido publicar somente áudio: a saída obrigatória é um pacote
+  audiovisual com narração + vídeo ou apresentação em slides, fórmulas/operações escritas e
+  legendas/transcrição; o MP3 pode existir apenas como artefato complementar. Todo episódio nasce
+  no estado `rascunho`; geração nunca publica automaticamente. O fluxo obrigatório é
+  `rascunho → aprovado pelo responsável → publicado para as alunas`; somente responsável/admin
+  pode aprovar ou publicar, e qualquer alteração posterior no roteiro, fontes, áudio ou slides
+  invalida a aprovação e devolve o episódio a `rascunho`. Alunas acessam somente `publicado`.
+  O processamento pesado roda em um **worker Ubuntu separado**, com **Ollama + Qwen + NVIDIA RTX
+  5090 de 32 GB**, ligado ao Davy Jones pela VPN Tailscale já operacional. O Davy conserva a
+  autoridade sobre autenticação, questão/fontes, fila, aprovação e publicação; o worker faz
+  roteiro, duas vozes sintéticas pt-BR **sem clonagem**, slides e vídeo. O Ollama do worker fica
+  somente em loopback; apenas a API autenticada do worker trafega pela tailnet, restrita ao Davy,
+  sem porta pública, `docker.sock`, `.env`, backup ou chave SSH compartilhada. O MCP de diagnóstico
+  da Medusa aceita somente o IP Tailscale do Davy e token próprio; é filtro da aplicação, não ACL
+  de tailnet, e não oferece execução de tarefas de mídia. O Hermes usa token independente no `.env`
+  e `mcp_servers.medusa-status`, sem `docker.sock`/`~/.ssh` e com `tool_search` ainda desligado.
+  Padrão visual: slides 16:9 de alto contraste, fórmulas grandes e legendas. Duração-alvo: **5–8
+  minutos**. Rascunhos expiram após **7 dias**; episódios publicados são preservados. O pipeline
+  descarrega o Qwen antes de TTS/renderização para reutilizar VRAM. Se o worker estiver indisponível,
+  o job permanece na fila: **não há fallback para a RX 6600** e o restante do Davy segue operando.
 - **Gateway sem privilégio de host (#4):** `hermes-agent` **não** monta `/var/run/docker.sock`
   nem `~/.ssh`; a ferramenta `shell` roda local no container (sem alcance ao Docker do host) e a
   API `:8642` fica **fora da LAN** (só loopback e a rede interna do OWUI). A suíte falha se o

@@ -31,7 +31,9 @@ services:
 
   # ---------------------------------------------------------------------------
   # FASE 2 — LLM local (extração mem0 + embeddings + chat)
-  # RX 6600 (gfx1032) → HSA_OVERRIDE 10.3.0
+  # RX 6600 (gfx1032) → HSA_OVERRIDE 10.3.0. A RX 5500 XT também está no host,
+  # mas não pode receber esse override: o ROCm a tratava como gfx1030, dividia
+  # o modelo entre as placas e abortava com MEMORY_APERTURE_VIOLATION.
   # ---------------------------------------------------------------------------
   ollama:
     # pinado por digest (tag flutuante `rocm` mudaria sozinha)
@@ -51,6 +53,9 @@ services:
       - video
       - "991"
     environment:
+      # Índice ROCr 0 = RX 6600 (PCI 01:00.0). A RX 5500 XT fica reservada para
+      # staging isolado até passar no gate próprio, sem fallback para CPU.
+      ROCR_VISIBLE_DEVICES: "0"
       HSA_OVERRIDE_GFX_VERSION: "10.3.0"
       OLLAMA_FLASH_ATTENTION: "1"
       # q8_0 fazia o qwen3:4b-64k (8.3 GB) estourar os 8 GB da RX 6600: 13% das
@@ -227,6 +232,7 @@ services:
       HERMES_GID: "1000"
       HERMES_UID: "1000"
       MEM0_MODE: oss # explícito: nunca cair no platform (nuvem)
+      MEDUSA_MCP_TOKEN: ${MEDUSA_MCP_TOKEN:?defina MEDUSA_MCP_TOKEN no .env}
     extra_hosts:
       - host.docker.internal:host-gateway
     healthcheck:

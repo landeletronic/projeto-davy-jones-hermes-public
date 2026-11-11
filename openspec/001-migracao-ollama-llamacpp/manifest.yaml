@@ -1,0 +1,64 @@
+openspec: "001"
+title: "Migração controlada Ollama para llama.cpp"
+status: "awaiting-authorization-for-autonomous-execution"
+owner: "OpenCode DevOps agent"
+date: "2026-11-01"
+scope:
+  repository: "davy-jones-hermes"
+  host: "davy-jones-hermes"
+  gpu: "AMD Radeon RX 6600"
+  production_backend: "ollama"
+  candidate_backend: "llama.cpp"
+guardrails:
+  keep_ollama_until_final_authorization: true
+  no_destructive_volume_operations: true
+  no_production_cutover_before_gate: true
+  preserve_unrelated_worktree_changes: true
+  oracle_required_before_and_after_changes: true
+  regression_test_required_for_fixes: true
+current_evidence:
+  baseline_tokens_per_second: 61.6
+  baseline_embedding_dimensions: 1024
+  oracle: "PASS=271 FAIL=0 WARN=0"
+  local_build: "llama.cpp:server-rocm-local-785322d"
+  local_build_source: "785322d17f2d51e5185cf996a1f4e46d87640841"
+  local_build_gpu_target: "gfx1030"
+  required_gpu_override: "HSA_OVERRIDE_GFX_VERSION=10.3.0"
+  staging_tokens_per_second: 67.3
+  official_gguf_context_limit: 40960
+  required_context: 65536
+gates:
+  - id: G0
+    name: baseline-and-safety
+    status: passed
+  - id: G1
+    name: runtime-package
+    status: passed-with-limitations
+  - id: G2
+    name: api-staging
+    status: passed
+  - id: G3
+    name: functional-integrations
+    status: pending
+  - id: G4
+    name: capacity-and-context
+    status: blocked-by-context-limit
+  - id: G5
+    name: backup-and-rollback
+    status: pending
+  - id: G6
+    name: canary
+    status: not-started
+  - id: G7
+    name: production-cutover
+    status: not-authorized
+allowed_outcomes:
+  - full-migration
+  - partial-migration
+  - reject-migration
+authorization:
+  requested: true
+  authorized: true
+  authorized_at: "2026-11-01"
+  authorization_record: "AUTHORIZATION.md"
+  required_phrase: "autorizo a execução autônoma do plano OpenSpec 001"

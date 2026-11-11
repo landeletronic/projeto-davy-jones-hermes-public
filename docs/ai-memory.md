@@ -9,8 +9,8 @@
 > Parte 3 — se parecer com algo já vivido, comece pela correção registrada. Ao corrigir um bug
 > novo, **adicione um check em `tests/verify_stack.sh`** (regra do projeto) e atualize este arquivo.
 >
-> **Período coberto:** 2026-10-09 → 2026-10-25 · **Fases 0 a 7 + endurecimento (#1-#10) + eixo de estudos + upgrade SO** · Suíte: **PASS=265 / FAIL=0 / WARN=0**
-> **Host:** `davy-jones-hermes` (192.168.15.231) · Ubuntu 26.04.1 · 15 GB RAM · 16 vCPU · RX 6600 8 GB
+> **Período coberto:** 2026-10-09 → 2026-11-11 · **Fases 0 a 7 + endurecimento (#1-#10) + eixo de estudos + upgrade SO + dual GPU** · último oráculo: **PASS=265 / FAIL=5 / WARN=2**
+> **Host:** `davy-jones-hermes` (192.168.15.231) · Ubuntu 26.04.1 · 15 GB RAM · 14 vCPU · RX 6600 8 GB + RX 5500 XT 8 GB
 > **Documentos relacionados:** `README.md` (entrada), `AGENTS.md` (regras),
 > `docs/reports/RELATORIO-LACUNAS.md` (backlog), `docs/plans/PLANO-IMPLEMENTACAO-MEM0.md` (plano),
 > `docs/runbooks/FASE-5bcd-RUNBOOK.md`, `docs/runbooks/FASE-6-RUNBOOK.md`,
@@ -90,7 +90,7 @@ BM25+RRF+reranker), etapas 2–3.10 e uma lista de **regras de implementação**
 `docs/reports/RELATORIO-TECNICO-DAVY-JONES-GPT.md`.
 
 **Regra de leitura:** esse track é **intenção datada**, não inventário. O que vale é o host + este
-repo + a suíte. Divergências registradas (memória → mem0; Vulkan → ROCm; VM 8 GB → host 16 vCPU/15 GB;
+repo + a suíte. Divergências registradas (memória → mem0; Vulkan → ROCm; VM 8 GB → host 14 vCPU/15 GB;
 `/opt/davy-jones` → `hermes-architect`; RAG própria → RAG do OWUI) e os itens que seguem em aberto
 (RX 5700, matriz 4K–32K, script 3.10 com bug `unbound variable`) estão na memória do servidor:
 `decisions/gpt-track-vs-lab.md` (decisão) e `concepts/davy-jones-gpt-track.md` (conteúdo). As regras
@@ -145,6 +145,7 @@ adotadas estão no `AGENTS.md` §6.1.
 | 2026-10-25 | **Apostilas Tiradentes — modelo didático separado** | Criada a knowledge base exclusiva `Apostilas Tiradentes`, vinculando os mesmos **8 `file_id`** das 5 apostilas + 3 complementos (sem duplicar PDFs), e o Pipe/modelo `apostilas_tiradentes` baseado no `qwen3:8b-chat-16k`. O modelo explica, resume, localiza exercícios, cria atividades inéditas, dá dicas e corrige tentativas; fontes são exibidas, conteúdo criado é rotulado como não oficial e a ausência de recuperação falha fechado. O `rag-ingest` agora envia novos arquivos de `concurso/tiradentes-bm/apostilas/` também para a base temática via `--kb-extra`. Armadilha corrigida antes do deploy: nos 5 PDFs, `file.hash` do OWUI 0.12.3 difere do SHA-256 físico do manifest; a identidade secundária correta é o nome achatado determinístico do worker (sem isso só os 3 complementos seriam vinculados). Instalador rerodado com **8 encontrados / 0 adicionados / 0 pendentes**; E2E como usuário comum provou explicação de porcentagem com fonte e imagem sem erro técnico. Suíte: 256 → **265 PASS / 0 FAIL / 0 WARN**. |
 | 2026-10-25 | **Apostilas — continuidade de disciplina corrigida** | Pedido explícito “continuando os estudos sobre expressões algébricas...” recebia somente chunks de Português da busca prévia do OWUI; o histórico era enviado ao LLM, mas não orientava a recuperação. O Pipe agora detecta a disciplina (mensagem atual vence; histórico resolve continuação elíptica), rejeita fontes incompatíveis e refaz localmente a busca vetorial no tenant da base `Apostilas Tiradentes`, filtrando a fonte pela disciplina. A frase exata virou regressão local e E2E. |
 | 2026-10-25 | **Apostilas — fallback web explícito via SearXNG** | A busca global do OWUI permanece desligada. Somente o Pipe Apostilas consulta `searxng:8080` quando faltam fontes locais e o pedido contém ação explícita de pesquisar junto de internet/web/site/material externo. O vizinho vetorial só conta como suporte se tiver aderência lexical ao assunto; isso impede “Números Complexos” de usar um chunk próximo de radicais. Resultados externos são limitados, tratados como não confiáveis e exibidos separadamente com links. Sem opt-in ou sem resultado, falha fechado. Tutor Tiradentes não foi alterado. Backup pré-deploy: `hermes-20261025T231549Z.tar.gz`. |
+| 2026-11-11 | **Troca de plataforma para duas GPUs** | Para instalar RX 6600 + RX 5500 XT na mesma VM, o Proxmox passou de **ASRock B660M-HDV + Intel Core i7-13700** (`pve-aorus`) para **ASUS TUF X470-PLUS GAMING + Ryzen 7 5700X** (`pve-tuf-x470`). Coleta direta confirmou 8 núcleos/16 threads, 2 × 16 GB Kingston a 3200 MT/s, BIOS 6254, Realtek RTL8111H, duas controladoras USB 3.x e ambas as GPUs em `vfio-pci`; a VM ficou com 14 vCPU e 15 GiB. O inventário Intel foi preservado em `docs/architecture/INVENTARIO-HARDWARE-PROXMOX-2026-10-23.md`; o caminho sem data contém o estado atual. O oráculo pós-troca ficou em **265 PASS / 5 FAIL / 2 WARN**: `qwen3:4b-64k` 100% CPU, smokes Tutor/Apostilas, backup antigo e retenção pendente. |
 
 Evolução da suíte: **36 → 51 → 84 → 88 → 99 → 103 → 124 → 129 → 139 → 151 → 159 → 165 → 166 → 176 → 191 → 194 → 200 → 204 → 206 → 207 → 212 → 225 → 227 → 230 → 231 → 235 → 245 → 254 → 256 → **265** checks. Hoje: `PASS=265 / FAIL=0 / WARN=0`.
 ## 2.2 O que está de pé e funcionando (verificado)

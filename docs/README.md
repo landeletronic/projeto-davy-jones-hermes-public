@@ -27,6 +27,7 @@ conserta. **Todo documento desta árvore está listado abaixo** — a suíte fal
 | [`runbooks/servicos/hermes-agent.md`](runbooks/servicos/hermes-agent.md) | gateway OpenAI-compatible + memória |
 | [`runbooks/servicos/hermes-dashboard.md`](runbooks/servicos/hermes-dashboard.md) | painel interno (`:9119`) |
 | [`runbooks/servicos/ollama.md`](runbooks/servicos/ollama.md) | modelos (chat + embeddings) |
+| [`runbooks/llama-cpp-staging.md`](runbooks/llama-cpp-staging.md) | staging reversível do candidato llama.cpp |
 | [`runbooks/servicos/qdrant.md`](runbooks/servicos/qdrant.md) | banco vetorial (mem0 + RAG) |
 | [`runbooks/servicos/docling.md`](runbooks/servicos/docling.md) | conversão de documentos |
 | [`runbooks/servicos/searxng.md`](runbooks/servicos/searxng.md) | meta-busca (desligada no chat) |
@@ -55,6 +56,7 @@ conserta. **Todo documento desta árvore está listado abaixo** — a suíte fal
 | [`runbooks/scripts/install_tutor_tiradentes.md`](runbooks/scripts/install_tutor_tiradentes.md) | no deploy (Pipe/modelo amigável → Open WebUI) |
 | [`runbooks/scripts/install_apostilas_tiradentes.md`](runbooks/scripts/install_apostilas_tiradentes.md) | no deploy (base exclusiva + Pipe/modelo de apostilas → Open WebUI) |
 | [`runbooks/scripts/tools.md`](runbooks/scripts/tools.md) | índice dos scripts de `tools/` (sob demanda) |
+| [`runbooks/scripts/medusa_mcp.md`](runbooks/scripts/medusa_mcp.md) | MCP de diagnóstico somente leitura da Medusa |
 | [`runbooks/scripts/make-public-repo.md`](runbooks/scripts/make-public-repo.md) | sob demanda (gera/publica o espelho público sanitizado) |
 | [`runbooks/scripts/inventario-proxmox.md`](runbooks/scripts/inventario-proxmox.md) | sob demanda (inventário de hardware do servidor físico, disparado do Windows) |
 
@@ -72,15 +74,18 @@ conserta. **Todo documento desta árvore está listado abaixo** — a suíte fal
 | Documento | Conteúdo |
 |---|---|
 | [`architecture/DIRETORIOS-HOST-MEDUSA-2026-10-20.md`](architecture/DIRETORIOS-HOST-MEDUSA-2026-10-20.md) | retrato do host e mapeamento de diretórios (base da reestruturação) |
-| [`architecture/INVENTARIO-HARDWARE-PROXMOX.md`](architecture/INVENTARIO-HARDWARE-PROXMOX.md) | inventário de hardware do **servidor físico** (placa-mãe, CPU, GPU, USB, portas) — gerado por `tools/inventario-proxmox.ps1` |
+| [`architecture/INVENTARIO-HARDWARE-PROXMOX.md`](architecture/INVENTARIO-HARDWARE-PROXMOX.md) | inventário atual do servidor físico: ASUS TUF X470 + Ryzen 7 5700X + duas GPUs, coletado em 11/11/2026 |
+| [`architecture/INVENTARIO-HARDWARE-PROXMOX-2026-10-23.md`](architecture/INVENTARIO-HARDWARE-PROXMOX-2026-10-23.md) | inventário histórico preservado: ASRock B660M-HDV + Intel Core i7-13700 + RX 6600 |
 | [`plans/PLANO-IMPLEMENTACAO-MEM0.md`](plans/PLANO-IMPLEMENTACAO-MEM0.md) | plano original do mem0/RAG |
 | [`plans/DAVY-JONES-GPT-CONTEXTO-CONTINUIDADE.md`](plans/DAVY-JONES-GPT-CONTEXTO-CONTINUIDADE.md) | trilha paralela do ChatGPT (intenção, não inventário) |
 | [`plans/tarefas_mentais_davy-jones-hermas.md`](plans/tarefas_mentais_davy-jones-hermas.md) | rascunho do usuário para o **eixo de estudos** (em andamento) |
 | [`plans/DESENHO-INBOX-DOCUMENTS.md`](plans/DESENHO-INBOX-DOCUMENTS.md) | inbox `documents/` (share SMB no host) + ingestão na RAG — árvore criada, SMB pendente |
 | [`plans/BANCO-DE-QUESTOES.md`](plans/BANCO-DE-QUESTOES.md) | banco de questões (Fase 5 do eixo): medições, decisões, desenho e limites |
+| [`plans/PLANO-DUAL-GPU.md`](plans/PLANO-DUAL-GPU.md) | estratégia para RX 6600 + RX 5500: runtimes separados e laboratório de VRAM repartida |
 | [`plans/UPGRADE-OMV8-TRIXIE.md`](plans/UPGRADE-OMV8-TRIXIE.md) | upgrade OMV 7/Debian 12 → OMV 8/trixie no host `openmediavault` — **executado em 2026-10-21** (Debian 13.7 / OMV 8.5.12-1; §0 traz resultado, desvios e achados) |
 | [`reports/RELATORIO-LACUNAS.md`](reports/RELATORIO-LACUNAS.md) | backlog de endurecimento #1–#10 com status |
 | [`reports/RELATORIO-TECNICO-DAVY-JONES-GPT.md`](reports/RELATORIO-TECNICO-DAVY-JONES-GPT.md) | relatório técnico da trilha paralela |
+| [`reports/BENCHMARK-GPUS-2026-11-11.md`](reports/BENCHMARK-GPUS-2026-11-11.md) | benchmark isolado e simultâneo da RX 6600 + RX 5500 XT via Vulkan/RADV |
 
 ## Aprendizado e memória
 

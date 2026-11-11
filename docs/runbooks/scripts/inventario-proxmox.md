@@ -2,7 +2,9 @@
 
 > Duas peças, como o resto do lab: **`tools/inventario_hardware.sh`** roda *no* servidor
 > (coleta) e **`tools/inventario-proxmox.ps1`** roda no **Windows** (dispara, recebe e grava).
-> O resultado é [`docs/architecture/INVENTARIO-HARDWARE-PROXMOX.md`](../../architecture/INVENTARIO-HARDWARE-PROXMOX.md).
+> O resultado atual é [`docs/architecture/INVENTARIO-HARDWARE-PROXMOX.md`](../../architecture/INVENTARIO-HARDWARE-PROXMOX.md).
+> A coleta da plataforma anterior permanece arquivada em
+> [`INVENTARIO-HARDWARE-PROXMOX-2026-10-23.md`](../../architecture/INVENTARIO-HARDWARE-PROXMOX-2026-10-23.md).
 
 ## O que faz
 
@@ -14,6 +16,10 @@
 3. A saída volta em **base64** e é decodificada no Windows — assim travessão e acento não
    dependem da página de código do console.
 4. Grava o Markdown em UTF-8 **sem BOM** e imprime o bloco *Resumo* na tela.
+
+> Antes de substituir uma coleta que ainda precise ser preservada, copie-a para um nome datado
+> ou gere a nova com `-OutFile`. O script escreve o destino solicitado; ele não apaga o histórico
+> datado criado para esta migração.
 
 ## Como rodar
 

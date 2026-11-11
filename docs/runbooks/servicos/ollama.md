@@ -6,7 +6,7 @@
 | Porta | `11434` publicada, **bloqueada na LAN** pela cadeia `DOCKER-USER` |
 | Dados | volume `ollama_data` |
 | Modelos | `qwen3:4b-64k` (chat), `bge-m3` (embeddings 1024d), `qwen3:8b-extract` (extração do mem0) |
-| GPU | RX 6600 8 GB · `OLLAMA_KV_CACHE_TYPE=q4_0` |
+| GPU | RX 6600 8 GB · `ROCR_VISIBLE_DEVICES=0` · `OLLAMA_KV_CACHE_TYPE=q4_0` |
 
 ## Verificar
 
@@ -18,6 +18,15 @@ docker exec ollama ollama ps                              # quem está na VRAM a
 
 `ollama ps` é a **prova** de GPU: `qwen3:4b-64k` deve aparecer com ~5,6 GB e `100% GPU`
 (se aparecer `13%/87% CPU`, o KV cache não é `q4_0`).
+
+O host também tem uma RX 5500 XT, mas a produção fica restrita ao índice ROCr `0`
+(RX 6600, PCI `01:00.0`). Sem essa restrição, o `HSA_OVERRIDE_GFX_VERSION=10.3.0`
+também mascara a RX 5500 como `gfx1030`; o Ollama divide os tensores entre as duas
+e o runner aborta com `HSA_STATUS_ERROR_MEMORY_APERTURE_VIOLATION`. Não remova
+`ROCR_VISIBLE_DEVICES=0` para “somar” as VRAMs. Medições e limites estão em
+[`../../reports/BENCHMARK-GPUS-2026-11-11.md`](../../reports/BENCHMARK-GPUS-2026-11-11.md).
+O gate isolado também reprovou a RX 5500 no ROCm 7.2: o alvo nativo `gfx1012` não
+existe no rocBLAS da imagem; sem override ela cai para CPU, e com override ela aborta.
 
 ## Reiniciar
 
@@ -33,4 +42,6 @@ cd /home/usuario/hermes-architect && docker compose restart ollama
   `docker exec ollama ollama pull bge-m3` (idem `qwen3:4b-64k`).
 - **OOM / cai para CPU** → outro processo ocupando a VRAM (ver `rocm-smi`); o lab só suporta
   a família `qwen3` nesse tamanho.
+- **Runner aborta com `MEMORY_APERTURE_VIOLATION`** → confirme
+  `ROCR_VISIBLE_DEVICES=0` no container; a RX 5500 recebeu indevidamente o override da RX 6600.
 - **Embedding de RAG falha** → `bge-m3` não está baixado; o upload do OWUI depende dele.
